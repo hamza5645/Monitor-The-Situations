@@ -7,7 +7,12 @@ interface NewsArticle {
   publishedAt: string;
 }
 
-const RSS_FEEDS = [
+interface RSSFeedConfig {
+  url: string;
+  source: string;
+}
+
+const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   {
     url: "https://feeds.bbci.co.uk/news/world/rss.xml",
     source: "BBC World",
@@ -87,14 +92,46 @@ const FALLBACK_HEADLINES: NewsArticle[] = [
   },
 ];
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const feedsParam = searchParams.get("feeds");
+  const keywordsParam = searchParams.get("keywords");
+
+  // Parse custom feeds from query param, or use defaults
+  let feeds: RSSFeedConfig[] = DEFAULT_RSS_FEEDS;
+  if (feedsParam) {
+    try {
+      feeds = JSON.parse(feedsParam) as RSSFeedConfig[];
+    } catch {
+      feeds = DEFAULT_RSS_FEEDS;
+    }
+  }
+
+  // Parse keywords for filtering
+  let keywords: string[] | null = null;
+  if (keywordsParam) {
+    try {
+      keywords = JSON.parse(keywordsParam) as string[];
+    } catch {
+      keywords = null;
+    }
+  }
+
   let allArticles: NewsArticle[] = [];
 
-  const feedPromises = RSS_FEEDS.map((feed) => fetchRSSFeed(feed.url, feed.source));
+  const feedPromises = feeds.map((feed) => fetchRSSFeed(feed.url, feed.source));
   const feedResults = await Promise.all(feedPromises);
 
   for (const articles of feedResults) {
     allArticles = [...allArticles, ...articles];
+  }
+
+  // Filter by keywords if provided
+  if (keywords && keywords.length > 0) {
+    const lowerKeywords = keywords.map((k) => k.toLowerCase());
+    allArticles = allArticles.filter((article) =>
+      lowerKeywords.some((kw) => article.title.toLowerCase().includes(kw))
+    );
   }
 
   allArticles.sort((a, b) =>

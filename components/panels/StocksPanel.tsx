@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSituation } from "@/context/SituationContext";
 
 interface StockData {
   symbol: string;
@@ -16,14 +17,20 @@ interface StockGroup {
 }
 
 export default function StocksPanel() {
+  const { activeSituation } = useSituation();
   const [stockGroups, setStockGroups] = useState<StockGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const situationIdRef = useRef(activeSituation.id);
 
   const fetchStocks = useCallback(async () => {
     try {
-      const response = await fetch("/api/stocks", { cache: "no-store" });
+      // Pass situation-specific stock groups to API
+      const params = new URLSearchParams({
+        groups: JSON.stringify(activeSituation.stocks),
+      });
+      const response = await fetch(`/api/stocks?${params}`, { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         setStockGroups(data.groups);
@@ -35,9 +42,14 @@ export default function StocksPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeSituation.stocks]);
 
+  // Re-fetch when situation changes
   useEffect(() => {
+    if (situationIdRef.current !== activeSituation.id) {
+      situationIdRef.current = activeSituation.id;
+      setLoading(true);
+    }
     fetchStocks();
     // Refresh every 10 seconds for real-time feel
     const dataInterval = setInterval(fetchStocks, 10 * 1000);
@@ -49,7 +61,7 @@ export default function StocksPanel() {
       clearInterval(dataInterval);
       clearInterval(tickInterval);
     };
-  }, [fetchStocks]);
+  }, [fetchStocks, activeSituation.id]);
 
   const formatPrice = (price: number) => {
     return price >= 1000 ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(2);

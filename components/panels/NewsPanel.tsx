@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSituation } from "@/context/SituationContext";
 
 interface NewsItem {
   title: string;
@@ -10,13 +11,22 @@ interface NewsItem {
 }
 
 export default function NewsPanel() {
+  const { activeSituation } = useSituation();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [secondsAgo, setSecondsAgo] = useState(0);
+  const situationIdRef = useRef(activeSituation.id);
 
   const fetchNews = useCallback(async () => {
     try {
-      const response = await fetch("/api/news", { cache: "no-store" });
+      // Pass situation-specific feeds and keywords to API
+      const params = new URLSearchParams({
+        feeds: JSON.stringify(activeSituation.news.feeds),
+      });
+      if (activeSituation.news.keywords && activeSituation.news.keywords.length > 0) {
+        params.set("keywords", JSON.stringify(activeSituation.news.keywords));
+      }
+      const response = await fetch(`/api/news?${params}`, { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         setNews(data.articles || []);
@@ -27,9 +37,14 @@ export default function NewsPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeSituation.news]);
 
+  // Re-fetch when situation changes
   useEffect(() => {
+    if (situationIdRef.current !== activeSituation.id) {
+      situationIdRef.current = activeSituation.id;
+      setLoading(true);
+    }
     fetchNews();
     // Refresh every 30 seconds for real-time news
     const dataInterval = setInterval(fetchNews, 30 * 1000);
@@ -41,7 +56,7 @@ export default function NewsPanel() {
       clearInterval(dataInterval);
       clearInterval(tickInterval);
     };
-  }, [fetchNews]);
+  }, [fetchNews, activeSituation.id]);
 
   // Duplicate news for seamless ticker loop
   const tickerContent = [...news, ...news];

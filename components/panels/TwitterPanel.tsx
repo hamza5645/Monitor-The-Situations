@@ -1,23 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-const PRESET_ACCOUNTS = [
-  { handle: "Reuters", name: "Reuters", category: "News" },
-  { handle: "Polymarket", name: "Polymarket", category: "Markets" },
-  { handle: "WhiteHouse", name: "White House", category: "Gov" },
-  { handle: "StateDept", name: "State Dept", category: "Gov" },
-  { handle: "DeptofDefense", name: "DoD", category: "Gov" },
-  { handle: "sentdefender", name: "OSINTdefender", category: "OSINT" },
-  { handle: "AP", name: "AP News", category: "News" },
-  { handle: "spectatorindex", name: "Spectator Index", category: "News" },
-  { handle: "disclosetv", name: "Disclose.tv", category: "News" },
-  { handle: "BNONews", name: "BNO News", category: "News" },
-  { handle: "ABORTEDALPHA", name: "Aborted Alpha", category: "OSINT" },
-  { handle: "IntelCrab", name: "Intel Crab", category: "OSINT" },
-];
+import { useSituation } from "@/context/SituationContext";
 
 export default function TwitterPanel() {
+  const { activeSituation } = useSituation();
   const [customHandle, setCustomHandle] = useState("");
   const [currentTime, setCurrentTime] = useState<string>("");
 
@@ -42,7 +29,8 @@ export default function TwitterPanel() {
     }
   };
 
-  const categories = ["News", "Gov", "OSINT", "Markets"];
+  // Get categories and accounts from situation config
+  const { accounts, categories } = activeSituation.intel;
 
   return (
     <div className="panel h-full flex flex-col">
@@ -76,14 +64,14 @@ export default function TwitterPanel() {
       {/* Account links by category */}
       <div className="flex-1 overflow-y-auto p-3">
         {categories.map((category) => {
-          const accounts = PRESET_ACCOUNTS.filter(a => a.category === category);
-          if (accounts.length === 0) return null;
+          const categoryAccounts = accounts.filter(a => a.category === category);
+          if (categoryAccounts.length === 0) return null;
 
           return (
             <div key={category} className="mb-4">
               <p className="text-red-400/50 text-xs uppercase tracking-wider mb-2">{category}</p>
               <div className="grid grid-cols-2 gap-2">
-                {accounts.map((account) => (
+                {categoryAccounts.map((account) => (
                   <a
                     key={account.handle}
                     href={`https://x.com/${account.handle}`}

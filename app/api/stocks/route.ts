@@ -13,7 +13,17 @@ interface StockGroup {
   stocks: StockQuote[];
 }
 
-const STOCK_GROUPS = [
+interface StockSymbolInput {
+  symbol: string;
+  name: string;
+}
+
+interface StockGroupInput {
+  title: string;
+  symbols: StockSymbolInput[];
+}
+
+const DEFAULT_STOCK_GROUPS: StockGroupInput[] = [
   {
     title: "Major Indices",
     symbols: [
@@ -85,10 +95,24 @@ async function fetchQuote(symbol: string, name: string): Promise<StockQuote | nu
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const groupsParam = searchParams.get("groups");
+
+  // Parse custom groups from query param, or use defaults
+  let stockGroups: StockGroupInput[] = DEFAULT_STOCK_GROUPS;
+  if (groupsParam) {
+    try {
+      stockGroups = JSON.parse(groupsParam) as StockGroupInput[];
+    } catch {
+      // If parsing fails, use defaults
+      stockGroups = DEFAULT_STOCK_GROUPS;
+    }
+  }
+
   const groups: StockGroup[] = [];
 
-  for (const group of STOCK_GROUPS) {
+  for (const group of stockGroups) {
     const stockPromises = group.symbols.map((s) => fetchQuote(s.symbol, s.name));
     const stocks = await Promise.all(stockPromises);
     const validStocks = stocks.filter((s): s is StockQuote => s !== null);

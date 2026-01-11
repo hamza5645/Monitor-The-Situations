@@ -1,9 +1,13 @@
 "use client";
 
+import { useSituation } from "@/context/SituationContext";
+
 export default function FlightPanel() {
-  // ADS-B Exchange URL for global view with military aircraft
-  // You can customize lat, lon, zoom parameters
-  const adsbUrl = "https://globe.adsbexchange.com/?hideSidebar&hideButtons&mapDim=0.3";
+  const { activeSituation } = useSituation();
+  const { lat, lon, zoom } = activeSituation.flight;
+
+  // Build ADS-B Exchange URL with situation-specific coordinates
+  const adsbUrl = `https://globe.adsbexchange.com/?lat=${lat}&lon=${lon}&zoom=${zoom}&hideSidebar&hideButtons&mapDim=0.3`;
 
   return (
     <div className="panel h-full flex flex-col">

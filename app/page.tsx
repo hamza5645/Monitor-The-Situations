@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import { SituationProvider } from "@/context/SituationContext";
 
 // Dynamic imports to avoid SSR issues with react-grid-layout
 const Dashboard = dynamic(() => import("@/components/Dashboard"), {
@@ -49,17 +50,19 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a]">
-      {showLoading && <LoadingScreen onComplete={handleLoadingComplete} />}
+    <SituationProvider>
+      <main className="min-h-screen bg-[#0a0a0a]">
+        {showLoading && <LoadingScreen onComplete={handleLoadingComplete} />}
 
-      <Header />
+        <Header />
 
-      <div
-        className="pt-[50px]"
-        style={{ height: "100vh" }}
-      >
-        {isMobile ? <MobileSwiper /> : <Dashboard />}
-      </div>
-    </main>
+        <div
+          className="pt-[50px]"
+          style={{ height: "100vh" }}
+        >
+          {isMobile ? <MobileSwiper /> : <Dashboard />}
+        </div>
+      </main>
+    </SituationProvider>
   );
 }
