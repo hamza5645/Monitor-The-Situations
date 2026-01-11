@@ -49,11 +49,12 @@ A collection of potential enhancements for Monitor the Situations.
 - [x] **Fix Twitter Panel** - Investigated embed options; Twitter API requires $200/month, free embeds are rate-limited. Links panel is the reliable solution.
 - [x] **Save Layouts** - Persist custom panel arrangements to localStorage/cloud
 - [ ] **Pre-loaded Situation Layouts** - Quick-switch configs for monitoring specific scenarios:
-  - **Greenland Crisis** - Arctic flight paths, Nordic news sources, relevant stocks
-  - **Venezuela Watch** - South America focus, oil prices, regional news feeds
+ x - **Greenland Crisis** - Arctic flight paths, Nordic news sources, relevant stocks
+ x - **Venezuela Watch** - South America focus, oil prices, regional news feeds
   - **Taiwan Strait** - Pacific flight radar, Asian markets, defense stocks
   - **Ukraine Conflict** - Eastern Europe focus, energy prices, NATO sources
   - **Middle East** - Israel/Iran news, oil & gold, regional flight activity
+ x - **Gaza**
   - **Cyber Attack** - Threat maps, tech stocks, security news feeds
   - **Economic Crisis** - All markets, VIX prominent, financial news
   - **Natural Disaster** - Earthquake + weather panels, emergency feeds

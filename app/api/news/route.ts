@@ -23,6 +23,23 @@ const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
   },
 ];
 
+// Decode HTML entities in RSS content
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&nbsp;/g, ' ');
+}
+
 function parseRSSItem(item: string, source: string): NewsArticle | null {
   try {
     const titleMatch = item.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/s);
@@ -31,7 +48,7 @@ function parseRSSItem(item: string, source: string): NewsArticle | null {
 
     if (!titleMatch || !linkMatch) return null;
 
-    const title = titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '');
+    const title = decodeHtmlEntities(titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, ''));
     const url = linkMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '');
 
     return {
@@ -60,7 +77,7 @@ async function fetchRSSFeed(feedUrl: string, source: string): Promise<NewsArticl
     if (!itemMatches) return [];
 
     const articles = itemMatches
-      .slice(0, 10)
+      .slice(0, 25) // Get 25 items per feed for more coverage
       .map((item) => parseRSSItem(item, source))
       .filter((a): a is NewsArticle => a !== null);
 
@@ -143,11 +160,12 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    articles: allArticles.slice(0, 20),
+    articles: allArticles.slice(0, 75), // Return up to 75 articles for better coverage
     timestamp: Date.now(),
   }, {
     headers: {
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      // Reduced cache to 60s for faster updates
+      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
     },
   });
 }

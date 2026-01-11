@@ -46,8 +46,8 @@ export default function NewsPanel() {
       setLoading(true);
     }
     fetchNews();
-    // Refresh every 30 seconds for real-time news
-    const dataInterval = setInterval(fetchNews, 30 * 1000);
+    // Refresh every 20 seconds for real-time breaking news updates
+    const dataInterval = setInterval(fetchNews, 20 * 1000);
     // Update seconds counter every second
     const tickInterval = setInterval(() => {
       setSecondsAgo((prev) => prev + 1);
@@ -94,7 +94,7 @@ export default function NewsPanel() {
 
       {/* News List */}
       <div className="flex-1 overflow-y-auto">
-        {news.slice(0, 10).map((item, index) => (
+        {news.slice(0, 40).map((item, index) => (
           <a
             key={index}
             href={item.url}
