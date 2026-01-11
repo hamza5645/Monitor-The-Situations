@@ -16,13 +16,21 @@ npm run dev           # Start Next.js dev server at localhost:3000
 npm run build         # Standard Next.js build
 npm run lint          # Run ESLint
 
-# Cloudflare deployment
+# Cloudflare deployment (manual)
 npm run cf:build      # Build for Cloudflare Workers (uses OpenNext)
 npm run cf:preview    # Build and preview locally with wrangler
 npm run cf:deploy     # Build and deploy to Cloudflare Workers
 ```
 
 **Live URL:** https://monitor-the-situations.hamzaosama5645.workers.dev
+
+## CI/CD
+
+GitHub Actions automatically deploys to Cloudflare Workers on every push to `main`. See `.github/workflows/deploy.yml`.
+
+Required GitHub Secrets:
+- `CLOUDFLARE_API_TOKEN` - API token with Workers Scripts (Edit) permission
+- `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
 
 ## Architecture
 
@@ -46,7 +54,7 @@ app/
     └── tweets/route.ts   # Twitter RSS bridge (RSSHub/Nitter - mostly broken)
 
 components/
-├── Dashboard.tsx         # CSS grid layout with 4 panels (desktop)
+├── Dashboard.tsx         # CSS grid layout with crosshair resize (desktop)
 ├── MobileSwiper.tsx      # Swiper-based panel navigation (mobile)
 ├── Header.tsx            # Top bar with logo, threat level, monitoring counter
 ├── ThreatLevel.tsx       # DEFCON-style indicator (fetches /api/defcon)
@@ -65,6 +73,14 @@ components/
 - **Panel data fetching:** Each panel fetches from internal API routes with caching headers
 - **Responsive layout:** Uses `useIsMobile` hook to switch between Dashboard (grid) and MobileSwiper (swipe)
 - **Session state:** LoadingScreen uses sessionStorage to show only once per session
+
+### Dashboard Layout System
+
+The Dashboard uses CSS Grid with a "crosshair" resize pattern:
+- `splitX` and `splitY` percentages control grid track sizes (default 50%)
+- In edit mode, a draggable handle at the center intersection resizes all 4 panels
+- Panel order can be swapped via drag-and-drop
+- Layout persists in localStorage (`mts-order-v1`, `mts-split-v1` keys)
 
 ### Cloudflare Deployment
 
