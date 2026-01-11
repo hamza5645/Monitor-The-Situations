@@ -9,11 +9,11 @@ interface ThreatData {
 }
 
 const THREAT_LEVELS: ThreatData[] = [
-  { level: 5, label: "STABLE", color: "threat-stable" },
-  { level: 4, label: "GUARDED", color: "threat-stable" },
-  { level: 3, label: "ELEVATED", color: "threat-elevated" },
-  { level: 2, label: "HIGH", color: "threat-high" },
-  { level: 1, label: "CRITICAL", color: "threat-critical" },
+  { level: 5, label: "DEFCON 5", color: "threat-stable" },
+  { level: 4, label: "DEFCON 4", color: "threat-stable" },
+  { level: 3, label: "DEFCON 3", color: "threat-elevated" },
+  { level: 2, label: "DEFCON 2", color: "threat-high" },
+  { level: 1, label: "DEFCON 1", color: "threat-critical" },
 ];
 
 export default function ThreatLevel() {
