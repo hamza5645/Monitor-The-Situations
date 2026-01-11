@@ -46,7 +46,7 @@ A collection of potential enhancements for Monitor the Situations.
 
 ## Layout System
 
-- [ ] **Fix Twitter Panel** - Currently just links, integrate actual tweet display or better embed
+- [x] **Fix Twitter Panel** - Investigated embed options; Twitter API requires $200/month, free embeds are rate-limited. Links panel is the reliable solution.
 - [ ] **Save Layouts** - Persist custom panel arrangements to localStorage/cloud
 - [ ] **Pre-loaded Situation Layouts** - Quick-switch configs for monitoring specific scenarios:
   - **Greenland Crisis** - Arctic flight paths, Nordic news sources, relevant stocks
@@ -75,7 +75,7 @@ A collection of potential enhancements for Monitor the Situations.
 ## Notes
 
 Priority should be:
-1. Fix broken functionality (Reuters, Twitter)
+1. Fix broken functionality (Reuters RSS)
 2. Layout save/load system
 3. Pre-loaded situation templates
 4. New data panels
