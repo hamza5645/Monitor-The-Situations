@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import type { SituationConfig, SituationsState } from "@/types/situation";
+import type { SituationConfig, SituationsState, LayoutConfig } from "@/types/situation";
+import { DEFAULT_LAYOUT } from "@/types/situation";
 import { PRESET_SITUATIONS, DEFAULT_SITUATION } from "@/data/presetSituations";
 
 const STORAGE_KEY = "mts-situations-v1";
@@ -9,10 +10,12 @@ const STORAGE_KEY = "mts-situations-v1";
 interface SituationContextValue {
   activeSituation: SituationConfig;
   activeSituationId: string;
+  activeLayout: LayoutConfig;
   presetSituations: SituationConfig[];
   customSituations: SituationConfig[];
   allSituations: SituationConfig[];
   setActiveSituation: (id: string) => void;
+  updateActiveLayout: (layout: LayoutConfig) => void;
   createCustomSituation: (config: Omit<SituationConfig, "id" | "isPreset" | "createdAt" | "updatedAt">) => string;
   updateCustomSituation: (id: string, config: Partial<SituationConfig>) => void;
   deleteCustomSituation: (id: string) => void;
@@ -36,17 +39,22 @@ function generateId(): string {
 // Load state from localStorage
 function loadState(): SituationsState {
   if (typeof window === "undefined") {
-    return { activeSituationId: "default", customSituations: [] };
+    return { activeSituationId: "default", customSituations: [], presetLayoutOverrides: {} };
   }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored) as SituationsState;
+      const parsed = JSON.parse(stored) as SituationsState;
+      // Ensure presetLayoutOverrides exists
+      if (!parsed.presetLayoutOverrides) {
+        parsed.presetLayoutOverrides = {};
+      }
+      return parsed;
     }
   } catch (e) {
     console.error("Failed to load situations state:", e);
   }
-  return { activeSituationId: "default", customSituations: [] };
+  return { activeSituationId: "default", customSituations: [], presetLayoutOverrides: {} };
 }
 
 // Save state to localStorage
@@ -62,7 +70,8 @@ function saveState(state: SituationsState): void {
 export function SituationProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SituationsState>({
     activeSituationId: "default",
-    customSituations: []
+    customSituations: [],
+    presetLayoutOverrides: {}
   });
   const [mounted, setMounted] = useState(false);
 
@@ -86,12 +95,56 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
     return all.find((s) => s.id === state.activeSituationId) || DEFAULT_SITUATION;
   }, [state.activeSituationId, state.customSituations]);
 
+  // Get the active layout for the current situation
+  const activeLayout = useMemo(() => {
+    const situationId = state.activeSituationId || "default";
+
+    // Check if it's a preset with an override
+    if (activeSituation.isPreset && state.presetLayoutOverrides?.[situationId]) {
+      return state.presetLayoutOverrides[situationId];
+    }
+
+    // Use the situation's own layout or default
+    return activeSituation.layout || DEFAULT_LAYOUT;
+  }, [state.activeSituationId, state.presetLayoutOverrides, activeSituation]);
+
   const allSituations = useMemo(() => {
     return [...PRESET_SITUATIONS, ...state.customSituations];
   }, [state.customSituations]);
 
   const setActiveSituation = useCallback((id: string) => {
     setState((prev) => ({ ...prev, activeSituationId: id }));
+  }, []);
+
+  // Update layout for the active situation
+  const updateActiveLayout = useCallback((layout: LayoutConfig) => {
+    setState((prev) => {
+      const situationId = prev.activeSituationId || "default";
+      const situation = [...PRESET_SITUATIONS, ...prev.customSituations].find(s => s.id === situationId);
+
+      if (!situation) return prev;
+
+      if (situation.isPreset) {
+        // For presets, store in presetLayoutOverrides
+        return {
+          ...prev,
+          presetLayoutOverrides: {
+            ...prev.presetLayoutOverrides,
+            [situationId]: layout
+          }
+        };
+      } else {
+        // For custom situations, update the situation's layout field
+        return {
+          ...prev,
+          customSituations: prev.customSituations.map((s) =>
+            s.id === situationId
+              ? { ...s, layout, updatedAt: new Date().toISOString() }
+              : s
+          )
+        };
+      }
+    });
   }, []);
 
   const createCustomSituation = useCallback((
@@ -105,6 +158,7 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
       isPreset: false,
       createdAt: now,
       updatedAt: now,
+      layout: config.layout || DEFAULT_LAYOUT,
     };
     setState((prev) => ({
       ...prev,
@@ -139,6 +193,13 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
 
     const newId = generateId();
     const now = new Date().toISOString();
+
+    // Get the layout - either from override (for presets) or from the situation
+    let layout = source.layout || DEFAULT_LAYOUT;
+    if (source.isPreset && state.presetLayoutOverrides?.[id]) {
+      layout = state.presetLayoutOverrides[id];
+    }
+
     const newSituation: SituationConfig = {
       ...source,
       id: newId,
@@ -146,6 +207,7 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
       isPreset: false,
       createdAt: now,
       updatedAt: now,
+      layout,
     };
 
     setState((prev) => ({
@@ -155,15 +217,17 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
     }));
 
     return newId;
-  }, [allSituations]);
+  }, [allSituations, state.presetLayoutOverrides]);
 
   const value: SituationContextValue = useMemo(() => ({
     activeSituation,
     activeSituationId: state.activeSituationId || "default",
+    activeLayout,
     presetSituations: PRESET_SITUATIONS,
     customSituations: state.customSituations,
     allSituations,
     setActiveSituation,
+    updateActiveLayout,
     createCustomSituation,
     updateCustomSituation,
     deleteCustomSituation,
@@ -171,9 +235,11 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
   }), [
     activeSituation,
     state.activeSituationId,
+    activeLayout,
     state.customSituations,
     allSituations,
     setActiveSituation,
+    updateActiveLayout,
     createCustomSituation,
     updateCustomSituation,
     deleteCustomSituation,

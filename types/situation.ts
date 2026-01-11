@@ -39,6 +39,19 @@ export interface IntelConfig {
   categories: string[];
 }
 
+// Layout configuration - panel order and split positions
+export interface LayoutConfig {
+  order: string[];
+  splitX: number;
+  splitY: number;
+}
+
+export const DEFAULT_LAYOUT: LayoutConfig = {
+  order: ["twitter", "flight", "stocks", "news"],
+  splitX: 50,
+  splitY: 50,
+};
+
 // Complete Situation configuration
 export interface SituationConfig {
   id: string;
@@ -51,10 +64,12 @@ export interface SituationConfig {
   stocks: StockGroupConfig[];
   news: NewsConfig;
   intel: IntelConfig;
+  layout?: LayoutConfig;
 }
 
 // Stored state in localStorage
 export interface SituationsState {
   activeSituationId: string | null;
   customSituations: SituationConfig[];
+  presetLayoutOverrides?: Record<string, LayoutConfig>; // Layout overrides for preset situations
 }

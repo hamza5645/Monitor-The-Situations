@@ -5,6 +5,8 @@ import TwitterPanel from "./panels/TwitterPanel";
 import FlightPanel from "./panels/FlightPanel";
 import StocksPanel from "./panels/StocksPanel";
 import NewsPanel from "./panels/NewsPanel";
+import { useSituation } from "@/context/SituationContext";
+import { DEFAULT_LAYOUT } from "@/types/situation";
 
 interface PanelConfig {
   id: string;
@@ -19,61 +21,6 @@ const ALL_PANELS: PanelConfig[] = [
   { id: "news", title: "Breaking News", component: NewsPanel },
 ];
 
-const ORDER_KEY = "mts-order-v1";
-const SPLIT_KEY = "mts-split-v1";
-
-interface SplitPosition {
-  splitX: number;
-  splitY: number;
-}
-
-function getStoredOrder(): string[] | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = localStorage.getItem(ORDER_KEY);
-    if (stored) {
-      const order = JSON.parse(stored);
-      if (Array.isArray(order) && order.length === ALL_PANELS.length) {
-        return order;
-      }
-    }
-  } catch (e) {
-    console.error("Error loading order:", e);
-  }
-  return null;
-}
-
-function saveOrder(order: string[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
-  } catch (e) {
-    console.error("Error saving order:", e);
-  }
-}
-
-function getStoredSplit(): SplitPosition | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const stored = localStorage.getItem(SPLIT_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (e) {
-    console.error("Error loading split:", e);
-  }
-  return null;
-}
-
-function saveSplit(split: SplitPosition) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(SPLIT_KEY, JSON.stringify(split));
-  } catch (e) {
-    console.error("Error saving split:", e);
-  }
-}
-
 // Hydration-safe mounted state using useSyncExternalStore
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
@@ -81,28 +28,28 @@ const getServerSnapshot = () => false;
 
 export default function Dashboard() {
   const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+  const { activeLayout, updateActiveLayout, activeSituationId } = useSituation();
 
-  // Use lazy initializers to read from localStorage on client
-  const [panelOrder, setPanelOrder] = useState<string[]>(() => {
-    const stored = getStoredOrder();
-    return stored || ALL_PANELS.map(p => p.id);
-  });
+  // Local state for editing - initialized from context
+  const [panelOrder, setPanelOrder] = useState<string[]>(DEFAULT_LAYOUT.order);
+  const [splitX, setSplitX] = useState(DEFAULT_LAYOUT.splitX);
+  const [splitY, setSplitY] = useState(DEFAULT_LAYOUT.splitY);
+
   const [isEditing, setIsEditing] = useState(false);
   const [draggedPanel, setDraggedPanel] = useState<string | null>(null);
   const [dragOverPanel, setDragOverPanel] = useState<string | null>(null);
-
-  // Split position state (percentage-based) with lazy initialization
-  const [splitX, setSplitX] = useState(() => {
-    const stored = getStoredSplit();
-    return stored?.splitX ?? 50;
-  });
-  const [splitY, setSplitY] = useState(() => {
-    const stored = getStoredSplit();
-    return stored?.splitY ?? 50;
-  });
   const [isResizing, setIsResizing] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Sync local state with context layout when situation changes or on mount
+  useEffect(() => {
+    if (activeLayout) {
+      setPanelOrder(activeLayout.order);
+      setSplitX(activeLayout.splitX);
+      setSplitY(activeLayout.splitY);
+    }
+  }, [activeLayout, activeSituationId]);
 
   // Drag handlers for reordering
   const handleDragStart = useCallback((e: React.DragEvent, panelId: string) => {
@@ -136,7 +83,6 @@ export default function Dashboard() {
         // Swap positions
         [newOrder[sourceIndex], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[sourceIndex]];
 
-        saveOrder(newOrder);
         return newOrder;
       });
     }
@@ -188,8 +134,6 @@ export default function Dashboard() {
       setIsResizing(false);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
-      // Save using refs to get current values
-      saveSplit({ splitX: splitXRef.current, splitY: splitYRef.current });
     };
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -197,13 +141,30 @@ export default function Dashboard() {
   }, []);
 
   const handleReset = useCallback(() => {
-    const defaultOrder = ALL_PANELS.map(p => p.id);
-    setPanelOrder(defaultOrder);
-    setSplitX(50);
-    setSplitY(50);
-    saveOrder(defaultOrder);
-    saveSplit({ splitX: 50, splitY: 50 });
+    setPanelOrder(DEFAULT_LAYOUT.order);
+    setSplitX(DEFAULT_LAYOUT.splitX);
+    setSplitY(DEFAULT_LAYOUT.splitY);
   }, []);
+
+  // Save layout to context when clicking Done
+  const handleDone = useCallback(() => {
+    updateActiveLayout({
+      order: panelOrder,
+      splitX,
+      splitY,
+    });
+    setIsEditing(false);
+  }, [panelOrder, splitX, splitY, updateActiveLayout]);
+
+  // Cancel editing and revert to saved layout
+  const handleCancel = useCallback(() => {
+    if (activeLayout) {
+      setPanelOrder(activeLayout.order);
+      setSplitX(activeLayout.splitX);
+      setSplitY(activeLayout.splitY);
+    }
+    setIsEditing(false);
+  }, [activeLayout]);
 
   const orderedPanels = panelOrder
     .map(id => ALL_PANELS.find(p => p.id === id))
@@ -225,39 +186,45 @@ export default function Dashboard() {
     >
       {/* Edit controls */}
       <div className="absolute top-2 right-2 z-50 flex gap-2">
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border transition-colors ${
-            isEditing
-              ? "bg-red-600 border-red-500 text-white"
-              : "bg-black/50 border-red-900/50 text-red-400 hover:bg-red-900/30"
-          }`}
-        >
-          {isEditing ? (
-            <>
+        {isEditing ? (
+          <>
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border bg-black/50 border-gray-600 text-gray-400 hover:bg-gray-900/50 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Cancel
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border bg-black/50 border-red-900/50 text-red-400 hover:bg-red-900/30 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reset
+            </button>
+            <button
+              onClick={handleDone}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border bg-red-600 border-red-500 text-white transition-colors"
+            >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Done
-            </>
-          ) : (
-            <>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
-              Edit Layout
-            </>
-          )}
-        </button>
-        {isEditing && (
+            </button>
+          </>
+        ) : (
           <button
-            onClick={handleReset}
+            onClick={() => setIsEditing(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border bg-black/50 border-red-900/50 text-red-400 hover:bg-red-900/30 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
             </svg>
-            Reset
+            Edit Layout
           </button>
         )}
       </div>

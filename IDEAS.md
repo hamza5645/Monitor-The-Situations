@@ -47,7 +47,7 @@ A collection of potential enhancements for Monitor the Situations.
 ## Layout System
 
 - [x] **Fix Twitter Panel** - Investigated embed options; Twitter API requires $200/month, free embeds are rate-limited. Links panel is the reliable solution.
-- [ ] **Save Layouts** - Persist custom panel arrangements to localStorage/cloud
+- [x] **Save Layouts** - Persist custom panel arrangements to localStorage/cloud
 - [ ] **Pre-loaded Situation Layouts** - Quick-switch configs for monitoring specific scenarios:
   - **Greenland Crisis** - Arctic flight paths, Nordic news sources, relevant stocks
   - **Venezuela Watch** - South America focus, oil prices, regional news feeds
