@@ -1,9 +1,9 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/defcon/route": "app/api/defcon/route.js",
   "/api/stocks/route": "app/api/stocks/route.js",
-  "/api/tweets/route": "app/api/tweets/route.js",
+  "/api/defcon/route": "app/api/defcon/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/api/news/route": "app/api/news/route.js",
+  "/api/tweets/route": "app/api/tweets/route.js",
   "/page": "app/page.js"
 }

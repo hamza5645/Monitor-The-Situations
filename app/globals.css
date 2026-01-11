@@ -126,17 +126,36 @@ body {
 /* React Grid Layout overrides */
 .react-grid-layout {
   position: relative;
+  min-height: calc(100vh - 58px);
 }
 
 .react-grid-item {
   transition: all 200ms ease;
-  transition-property: left, top;
+  transition-property: left, top, box-shadow;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, box-shadow;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 100;
+  box-shadow: 0 0 40px var(--red-glow), 0 20px 40px rgba(0, 0, 0, 0.5);
+  opacity: 0.9;
 }
 
 .react-grid-item.react-grid-placeholder {
   background: var(--red-accent) !important;
   opacity: 0.2;
   border-radius: 4px;
+  border: 2px dashed var(--red-accent);
+}
+
+.react-grid-item.dropping {
+  visibility: hidden;
 }
 
 .react-grid-item > .react-resizable-handle {
@@ -159,6 +178,16 @@ body {
 
 .react-grid-item:hover > .react-resizable-handle::after {
   opacity: 1;
+}
+
+/* Edit mode indicator */
+.editing-mode .react-grid-item {
+  border: 1px dashed rgba(220, 38, 38, 0.5);
+}
+
+.editing-mode .react-grid-item:hover {
+  border-color: var(--red-accent);
+  cursor: move;
 }
 
 /* Loading screen */
