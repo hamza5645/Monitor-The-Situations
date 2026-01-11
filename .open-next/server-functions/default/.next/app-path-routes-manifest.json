@@ -1,0 +1,9 @@
+{
+  "/favicon.ico/route": "/favicon.ico",
+  "/_not-found/page": "/_not-found",
+  "/api/defcon/route": "/api/defcon",
+  "/api/stocks/route": "/api/stocks",
+  "/api/tweets/route": "/api/tweets",
+  "/api/news/route": "/api/news",
+  "/page": "/"
+}

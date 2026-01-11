@@ -1,0 +1,106 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
+interface StockData {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
+interface StockGroup {
+  title: string;
+  stocks: StockData[];
+}
+
+export default function StocksPanel() {
+  const [stockGroups, setStockGroups] = useState<StockGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const fetchStocks = async () => {
+      try {
+        const response = await fetch("/api/stocks");
+        if (response.ok) {
+          const data = await response.json();
+          setStockGroups(data.groups);
+          setLastUpdate(new Date());
+        }
+      } catch (error) {
+        console.error("Failed to fetch stocks:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStocks();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchStocks, 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatPrice = (price: number) => {
+    return price >= 1000 ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(2);
+  };
+
+  return (
+    <div className="panel h-full flex flex-col">
+      <div className="panel-header">
+        MARKET DATA
+        {lastUpdate && (
+          <span className="ml-auto text-gray-500 font-normal">
+            {lastUpdate.toLocaleTimeString()}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-2">
+        {loading ? (
+          <div className="flex items-center justify-center h-full text-gray-500">
+            Loading market data...
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {stockGroups.map((group) => (
+              <div key={group.title}>
+                <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+                  {group.title}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {group.stocks.map((stock) => (
+                    <div
+                      key={stock.symbol}
+                      className="bg-black/30 rounded p-2 text-xs"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-bold text-white">{stock.symbol}</div>
+                          <div className="text-[10px] text-gray-500 truncate max-w-[80px]">
+                            {stock.name}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono">${formatPrice(stock.price)}</div>
+                          <div
+                            className={
+                              stock.change >= 0 ? "stock-up" : "stock-down"
+                            }
+                          >
+                            {stock.change >= 0 ? "+" : ""}
+                            {stock.changePercent.toFixed(2)}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

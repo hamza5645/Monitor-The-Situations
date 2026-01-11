@@ -1,0 +1,13 @@
+#:schema node_modules/wrangler/config-schema.json
+
+name = "monitor-the-situations"
+main = ".open-next/worker.js"
+compatibility_date = "2024-12-05"
+compatibility_flags = ["nodejs_compat"]
+
+[placement]
+mode = "smart"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
