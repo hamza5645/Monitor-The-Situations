@@ -7,7 +7,7 @@ A collection of potential enhancements for Monitor the Situations.
 ## New Panels / Data Sources
 
 - [x] **Earthquake Monitor** - USGS real-time JSON API for global seismic activity
-- [ ] **Vessel Tracker** - MarineTraffic or VesselFinder embed (like flight radar but for ships)
+- [.] **Vessel Tracker** - MarineTraffic or VesselFinder embed (like flight radar but for ships)
 - [ ] **Cyber Threat Map** - Kaspersky/Fortinet live attack visualization maps
 - [ ] **Weather Alerts** - NOAA severe weather warnings
 - [ ] **VIX Fear Gauge** - Visual meter showing market volatility
