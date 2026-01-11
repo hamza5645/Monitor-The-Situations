@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface StockData {
   symbol: string;
@@ -19,28 +19,37 @@ export default function StocksPanel() {
   const [stockGroups, setStockGroups] = useState<StockGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+
+  const fetchStocks = useCallback(async () => {
+    try {
+      const response = await fetch("/api/stocks", { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        setStockGroups(data.groups);
+        setLastUpdate(new Date());
+        setSecondsAgo(0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stocks:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchStocks = async () => {
-      try {
-        const response = await fetch("/api/stocks");
-        if (response.ok) {
-          const data = await response.json();
-          setStockGroups(data.groups);
-          setLastUpdate(new Date());
-        }
-      } catch (error) {
-        console.error("Failed to fetch stocks:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStocks();
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchStocks, 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    // Refresh every 10 seconds for real-time feel
+    const dataInterval = setInterval(fetchStocks, 10 * 1000);
+    // Update seconds counter every second
+    const tickInterval = setInterval(() => {
+      setSecondsAgo((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      clearInterval(dataInterval);
+      clearInterval(tickInterval);
+    };
+  }, [fetchStocks]);
 
   const formatPrice = (price: number) => {
     return price >= 1000 ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(2);
@@ -49,10 +58,13 @@ export default function StocksPanel() {
   return (
     <div className="panel h-full flex flex-col">
       <div className="panel-header">
-        MARKET DATA
+        <span className="flex items-center gap-2">
+          MARKET DATA
+          <span className="live-indicator" />
+        </span>
         {lastUpdate && (
-          <span className="ml-auto text-gray-500 font-normal">
-            {lastUpdate.toLocaleTimeString()}
+          <span className="ml-auto text-gray-500 font-normal font-mono text-[10px]">
+            {secondsAgo}s ago
           </span>
         )}
       </div>

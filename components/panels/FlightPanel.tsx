@@ -7,7 +7,15 @@ export default function FlightPanel() {
 
   return (
     <div className="panel h-full flex flex-col">
-      <div className="panel-header">FLIGHT RADAR</div>
+      <div className="panel-header">
+        <span className="flex items-center gap-2">
+          FLIGHT RADAR
+          <span className="live-indicator" />
+        </span>
+        <span className="ml-auto text-gray-500 font-normal font-mono text-[10px]">
+          LIVE
+        </span>
+      </div>
       <div className="flex-1 iframe-container">
         <iframe
           src={adsbUrl}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface NewsItem {
   title: string;
@@ -12,34 +12,51 @@ interface NewsItem {
 export default function NewsPanel() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+
+  const fetchNews = useCallback(async () => {
+    try {
+      const response = await fetch("/api/news", { cache: "no-store" });
+      if (response.ok) {
+        const data = await response.json();
+        setNews(data.articles || []);
+        setSecondsAgo(0);
+      }
+    } catch (error) {
+      console.error("Failed to fetch news:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const response = await fetch("/api/news");
-        if (response.ok) {
-          const data = await response.json();
-          setNews(data.articles || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch news:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNews();
-    // Refresh every 5 minutes
-    const interval = setInterval(fetchNews, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+    // Refresh every 30 seconds for real-time news
+    const dataInterval = setInterval(fetchNews, 30 * 1000);
+    // Update seconds counter every second
+    const tickInterval = setInterval(() => {
+      setSecondsAgo((prev) => prev + 1);
+    }, 1000);
+    return () => {
+      clearInterval(dataInterval);
+      clearInterval(tickInterval);
+    };
+  }, [fetchNews]);
 
   // Duplicate news for seamless ticker loop
   const tickerContent = [...news, ...news];
 
   return (
     <div className="panel h-full flex flex-col">
-      <div className="panel-header">BREAKING NEWS</div>
+      <div className="panel-header">
+        <span className="flex items-center gap-2">
+          BREAKING NEWS
+          <span className="live-indicator" />
+        </span>
+        <span className="ml-auto text-gray-500 font-normal font-mono text-[10px]">
+          {secondsAgo}s ago
+        </span>
+      </div>
 
       {/* Ticker */}
       <div className="ticker-wrapper bg-red-900/20 border-b border-red-900/30 py-2">

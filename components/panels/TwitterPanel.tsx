@@ -43,9 +43,12 @@ export default function TwitterPanel() {
 
   return (
     <div className="panel h-full flex flex-col">
-      <div className="panel-header flex items-center justify-between">
-        <span>INTEL SOURCES</span>
-        <span className="text-red-400/60 text-xs font-mono">{currentTime}</span>
+      <div className="panel-header">
+        <span className="flex items-center gap-2">
+          INTEL SOURCES
+          <span className="live-indicator" />
+        </span>
+        <span className="ml-auto text-gray-500 font-normal font-mono text-[10px]">{currentTime}</span>
       </div>
 
       {/* Custom handle input */}

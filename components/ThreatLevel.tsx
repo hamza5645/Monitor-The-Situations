@@ -23,7 +23,7 @@ export default function ThreatLevel() {
   useEffect(() => {
     const fetchThreat = async () => {
       try {
-        const response = await fetch("/api/defcon");
+        const response = await fetch("/api/defcon", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
           const threatData = THREAT_LEVELS.find(t => t.level === data.level) || THREAT_LEVELS[2];
@@ -37,8 +37,8 @@ export default function ThreatLevel() {
     };
 
     fetchThreat();
-    // Refresh every 15 minutes
-    const interval = setInterval(fetchThreat, 15 * 60 * 1000);
+    // Refresh every 60 seconds for real-time monitoring
+    const interval = setInterval(fetchThreat, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
