@@ -5,19 +5,21 @@ import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-import TwitterPanel from "./panels/TwitterPanel";
-import FlightPanel from "./panels/FlightPanel";
-import StocksPanel from "./panels/StocksPanel";
-import NewsPanel from "./panels/NewsPanel";
-
-const MOBILE_PANELS = [
-  { id: "twitter", component: TwitterPanel },
-  { id: "flight", component: FlightPanel },
-  { id: "stocks", component: StocksPanel },
-  { id: "news", component: NewsPanel },
-];
+import { useSituation } from "@/context/SituationContext";
+import { getPanelById, type PanelConfig } from "@/config/panelRegistry";
 
 export default function MobileSwiper() {
+  const { activeLayout } = useSituation();
+
+  // Get visible panels from layout, with fallback to default
+  const visiblePanelIds = activeLayout?.visiblePanels ||
+    activeLayout?.order ||
+    ["twitter", "flight", "stocks", "news"];
+
+  const panels = visiblePanelIds
+    .map((id) => getPanelById(id))
+    .filter((p): p is PanelConfig => p !== undefined);
+
   return (
     <div className="w-full h-full">
       <Swiper
@@ -30,7 +32,7 @@ export default function MobileSwiper() {
         slidesPerView={1}
         className="h-full"
       >
-        {MOBILE_PANELS.map((panel) => {
+        {panels.map((panel) => {
           const Component = panel.component;
           return (
             <SwiperSlide key={panel.id} className="h-full">

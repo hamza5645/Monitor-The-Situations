@@ -1,25 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
-import TwitterPanel from "./panels/TwitterPanel";
-import FlightPanel from "./panels/FlightPanel";
-import StocksPanel from "./panels/StocksPanel";
-import NewsPanel from "./panels/NewsPanel";
+import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
 import { useSituation } from "@/context/SituationContext";
 import { DEFAULT_LAYOUT } from "@/types/situation";
-
-interface PanelConfig {
-  id: string;
-  title: string;
-  component: React.ComponentType;
-}
-
-const ALL_PANELS: PanelConfig[] = [
-  { id: "twitter", title: "Intel Feed", component: TwitterPanel },
-  { id: "flight", title: "Flight Radar", component: FlightPanel },
-  { id: "stocks", title: "Market Data", component: StocksPanel },
-  { id: "news", title: "Breaking News", component: NewsPanel },
-];
+import { getPanelById, type PanelConfig } from "@/config/panelRegistry";
+import { calculateGridDimensions, shouldShowCrosshairResize } from "@/utils/gridCalculator";
+import WidgetSelector from "./WidgetSelector";
 
 // Hydration-safe mounted state using useSyncExternalStore
 const emptySubscribe = () => () => {};
@@ -32,6 +18,9 @@ export default function Dashboard() {
 
   // Local state for editing - initialized from context
   const [panelOrder, setPanelOrder] = useState<string[]>(DEFAULT_LAYOUT.order);
+  const [visiblePanels, setVisiblePanels] = useState<string[]>(
+    DEFAULT_LAYOUT.visiblePanels || DEFAULT_LAYOUT.order
+  );
   const [splitX, setSplitX] = useState(DEFAULT_LAYOUT.splitX);
   const [splitY, setSplitY] = useState(DEFAULT_LAYOUT.splitY);
 
@@ -46,10 +35,39 @@ export default function Dashboard() {
   useEffect(() => {
     if (activeLayout) {
       setPanelOrder(activeLayout.order);
+      setVisiblePanels(activeLayout.visiblePanels || activeLayout.order);
       setSplitX(activeLayout.splitX);
       setSplitY(activeLayout.splitY);
     }
   }, [activeLayout, activeSituationId]);
+
+  // Calculate grid dimensions based on visible panel count
+  const gridDimensions = useMemo(() => {
+    return calculateGridDimensions(visiblePanels.length, splitX, splitY);
+  }, [visiblePanels.length, splitX, splitY]);
+
+  // Check if crosshair resize should be shown (only for 2x2 grids)
+  const showCrosshairResize = shouldShowCrosshairResize(gridDimensions.cols, gridDimensions.rows);
+
+  // Handle panel toggle from widget selector
+  const handleTogglePanel = useCallback((panelId: string, enabled: boolean) => {
+    setVisiblePanels((prev) => {
+      if (enabled) {
+        return [...prev, panelId];
+      } else {
+        return prev.filter((id) => id !== panelId);
+      }
+    });
+
+    setPanelOrder((prev) => {
+      if (enabled && !prev.includes(panelId)) {
+        return [...prev, panelId];
+      } else if (!enabled) {
+        return prev.filter((id) => id !== panelId);
+      }
+      return prev;
+    });
+  }, []);
 
   // Drag handlers for reordering
   const handleDragStart = useCallback((e: React.DragEvent, panelId: string) => {
@@ -142,6 +160,7 @@ export default function Dashboard() {
 
   const handleReset = useCallback(() => {
     setPanelOrder(DEFAULT_LAYOUT.order);
+    setVisiblePanels(DEFAULT_LAYOUT.visiblePanels || DEFAULT_LAYOUT.order);
     setSplitX(DEFAULT_LAYOUT.splitX);
     setSplitY(DEFAULT_LAYOUT.splitY);
   }, []);
@@ -149,26 +168,30 @@ export default function Dashboard() {
   // Save layout to context when clicking Done
   const handleDone = useCallback(() => {
     updateActiveLayout({
-      order: panelOrder,
+      order: panelOrder.filter((id) => visiblePanels.includes(id)),
+      visiblePanels,
       splitX,
       splitY,
     });
     setIsEditing(false);
-  }, [panelOrder, splitX, splitY, updateActiveLayout]);
+  }, [panelOrder, visiblePanels, splitX, splitY, updateActiveLayout]);
 
   // Cancel editing and revert to saved layout
   const handleCancel = useCallback(() => {
     if (activeLayout) {
       setPanelOrder(activeLayout.order);
+      setVisiblePanels(activeLayout.visiblePanels || activeLayout.order);
       setSplitX(activeLayout.splitX);
       setSplitY(activeLayout.splitY);
     }
     setIsEditing(false);
   }, [activeLayout]);
 
-  const orderedPanels = panelOrder
-    .map(id => ALL_PANELS.find(p => p.id === id))
-    .filter((p): p is PanelConfig => p !== null);
+  // Filter ordered panels to only visible ones
+  const orderedVisiblePanels = panelOrder
+    .filter((id) => visiblePanels.includes(id))
+    .map((id) => getPanelById(id))
+    .filter((p): p is PanelConfig => p !== undefined);
 
   if (!mounted) {
     return (
@@ -188,6 +211,11 @@ export default function Dashboard() {
       <div className="absolute top-2 right-2 z-50 flex gap-2">
         {isEditing ? (
           <>
+            {/* Widget Selector - only visible in edit mode */}
+            <WidgetSelector
+              visiblePanels={visiblePanels}
+              onTogglePanel={handleTogglePanel}
+            />
             <button
               onClick={handleCancel}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border bg-black/50 border-gray-600 text-gray-400 hover:bg-gray-900/50 transition-colors"
@@ -229,8 +257,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Crosshair resize handle - only visible in edit mode */}
-      {isEditing && (
+      {/* Crosshair resize handle - only visible in edit mode for 2x2 grids */}
+      {isEditing && showCrosshairResize && (
         <div
           className={`crosshair-handle ${isResizing ? "resizing" : ""}`}
           style={{
@@ -249,11 +277,11 @@ export default function Dashboard() {
       <div
         className="w-full h-full p-2 grid gap-2"
         style={{
-          gridTemplateColumns: `${splitX}% 1fr`,
-          gridTemplateRows: `${splitY}% 1fr`,
+          gridTemplateColumns: gridDimensions.templateColumns,
+          gridTemplateRows: gridDimensions.templateRows,
         }}
       >
-        {orderedPanels.map((panel) => {
+        {orderedVisiblePanels.map((panel) => {
           const Component = panel.component;
           const isDragging = draggedPanel === panel.id;
           const isDragOver = dragOverPanel === panel.id;

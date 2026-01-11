@@ -84,6 +84,10 @@ export const DEFAULT_SITUATION: SituationConfig = {
     ],
     categories: ["News", "Gov", "OSINT", "Markets"],
   },
+  earthquake: {
+    feed: "all_hour",
+    minMagnitude: 4.0,
+  },
 };
 
 export const VENEZUELA_SITUATION: SituationConfig = {
@@ -159,6 +163,15 @@ export const VENEZUELA_SITUATION: SituationConfig = {
       { handle: "BNONews", name: "BNO News", category: "News" },
     ],
     categories: ["News", "Gov", "OSINT"],
+  },
+  earthquake: {
+    feed: "all_day",
+    minMagnitude: 3.0,
+    focusRegion: {
+      lat: 10.5,
+      lon: -66.9,
+      radiusKm: 2000,
+    },
   },
 };
 
@@ -239,6 +252,15 @@ export const GAZA_SITUATION: SituationConfig = {
       { handle: "BNONews", name: "BNO News", category: "News" },
     ],
     categories: ["News", "Gov", "OSINT"],
+  },
+  earthquake: {
+    feed: "all_day",
+    minMagnitude: 2.0,
+    focusRegion: {
+      lat: 31.5,
+      lon: 34.5,
+      radiusKm: 500,
+    },
   },
 };
 
@@ -324,6 +346,15 @@ export const GREENLAND_SITUATION: SituationConfig = {
       { handle: "ArcticCouncil", name: "Arctic Council", category: "Gov" },
     ],
     categories: ["News", "Gov", "OSINT"],
+  },
+  earthquake: {
+    feed: "all_day",
+    minMagnitude: 3.0,
+    focusRegion: {
+      lat: 72.0,
+      lon: -40.0,
+      radiusKm: 3000,
+    },
   },
 };
 
