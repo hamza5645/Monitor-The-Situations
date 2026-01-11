@@ -1,7 +1,5 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
-
 export const alt = "Monitor the Situations - Real-Time Global Monitoring Dashboard";
 export const size = {
   width: 1200,
