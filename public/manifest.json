@@ -1,0 +1,19 @@
+{
+  "name": "Monitor the Situations",
+  "short_name": "MTS",
+  "description": "Real-time global situation monitoring dashboard. Track flight radar, stock markets, breaking news, and OSINT intel sources.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["news", "utilities"],
+  "lang": "en"
+}

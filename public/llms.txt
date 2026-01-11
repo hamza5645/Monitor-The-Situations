@@ -1,0 +1,34 @@
+# Monitor the Situations
+
+> Real-time global situation monitoring dashboard - A free, live ops-center style dashboard for tracking world events.
+
+## What is Monitor the Situations?
+
+Monitor the Situations is a web-based dashboard that provides real-time monitoring of global events in an ops-center aesthetic. It aggregates multiple data sources into a single, easy-to-use interface designed for situational awareness.
+
+## Features
+
+- **Flight Radar**: Live military and civilian aircraft tracking via ADS-B Exchange. Monitor flight paths, military movements, and aviation activity worldwide.
+- **Stock Markets**: Real-time stock market data including major indices (S&P 500, Dow Jones, NASDAQ), defense stocks (Lockheed Martin, Raytheon, Northrop Grumman), and cryptocurrency prices.
+- **Breaking News**: Live news ticker aggregating headlines from BBC News and Reuters for real-time news monitoring.
+- **Intel Sources**: Curated collection of OSINT (Open Source Intelligence) Twitter/X accounts covering geopolitics, military movements, and breaking global events.
+
+## Use Cases
+
+- Real-time situational awareness during breaking news events
+- OSINT monitoring and intelligence gathering
+- Market tracking during global events and geopolitical developments
+- Flight tracking for aviation enthusiasts and news monitoring
+- All-in-one dashboard for staying informed on world events
+
+## Technical Details
+
+- **URL**: https://monitorthesituations.com
+- **Type**: Free web application (no account required)
+- **Access**: Open to all users, no registration needed
+- **Updates**: Real-time data with automatic refresh
+- **Platform**: Works on desktop and mobile browsers
+
+## Keywords
+
+situation room, real-time monitoring, OSINT, flight radar, ADS-B, stock market tracker, breaking news dashboard, military aircraft tracking, geopolitical monitoring, intel dashboard, situational awareness, global events tracker
