@@ -15,6 +15,13 @@ const eslintConfig = defineConfig([
     // OpenNext build artifacts
     ".open-next/**",
   ]),
+  // Disable overly strict react-hooks rules that block legitimate patterns
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
