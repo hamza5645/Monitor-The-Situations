@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import TwitterPanel from "./panels/TwitterPanel";
 import FlightPanel from "./panels/FlightPanel";
 import StocksPanel from "./panels/StocksPanel";
@@ -19,21 +19,26 @@ const ALL_PANELS: PanelConfig[] = [
   { id: "news", title: "Breaking News", component: NewsPanel },
 ];
 
-const PANEL_ORDER_KEY = "mts-panel-order-v3";
+const ORDER_KEY = "mts-order-v1";
+const SPLIT_KEY = "mts-split-v1";
+
+interface SplitPosition {
+  splitX: number;
+  splitY: number;
+}
 
 function getStoredOrder(): string[] | null {
   if (typeof window === "undefined") return null;
   try {
-    const stored = localStorage.getItem(PANEL_ORDER_KEY);
+    const stored = localStorage.getItem(ORDER_KEY);
     if (stored) {
       const order = JSON.parse(stored);
-      // Validate that all panel IDs are present
       if (Array.isArray(order) && order.length === ALL_PANELS.length) {
         return order;
       }
     }
   } catch (e) {
-    console.error("Error loading panel order:", e);
+    console.error("Error loading order:", e);
   }
   return null;
 }
@@ -41,9 +46,31 @@ function getStoredOrder(): string[] | null {
 function saveOrder(order: string[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(PANEL_ORDER_KEY, JSON.stringify(order));
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
   } catch (e) {
-    console.error("Error saving panel order:", e);
+    console.error("Error saving order:", e);
+  }
+}
+
+function getStoredSplit(): SplitPosition | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(SPLIT_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error("Error loading split:", e);
+  }
+  return null;
+}
+
+function saveSplit(split: SplitPosition) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SPLIT_KEY, JSON.stringify(split));
+  } catch (e) {
+    console.error("Error saving split:", e);
   }
 }
 
@@ -54,14 +81,27 @@ export default function Dashboard() {
   const [draggedPanel, setDraggedPanel] = useState<string | null>(null);
   const [dragOverPanel, setDragOverPanel] = useState<string | null>(null);
 
+  // Split position state (percentage-based)
+  const [splitX, setSplitX] = useState(50);
+  const [splitY, setSplitY] = useState(50);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setMounted(true);
-    const stored = getStoredOrder();
-    if (stored) {
-      setPanelOrder(stored);
+    const storedOrder = getStoredOrder();
+    if (storedOrder) {
+      setPanelOrder(storedOrder);
+    }
+    const storedSplit = getStoredSplit();
+    if (storedSplit) {
+      setSplitX(storedSplit.splitX);
+      setSplitY(storedSplit.splitY);
     }
   }, []);
 
+  // Drag handlers for reordering
   const handleDragStart = useCallback((e: React.DragEvent, panelId: string) => {
     setDraggedPanel(panelId);
     e.dataTransfer.effectAllowed = "move";
@@ -107,15 +147,64 @@ export default function Dashboard() {
     setDragOverPanel(null);
   }, []);
 
+  // Refs to track current split values during resize
+  const splitXRef = useRef(splitX);
+  const splitYRef = useRef(splitY);
+
+  // Keep refs in sync
+  useEffect(() => {
+    splitXRef.current = splitX;
+    splitYRef.current = splitY;
+  }, [splitX, splitY]);
+
+  // Crosshair resize handler
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const container = containerRef.current;
+    if (!container) return;
+
+    setIsResizing(true);
+    const rect = container.getBoundingClientRect();
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+      // Clamp between 20% and 80% to prevent panels from disappearing
+      const clampedX = Math.min(80, Math.max(20, x));
+      const clampedY = Math.min(80, Math.max(20, y));
+
+      setSplitX(clampedX);
+      setSplitY(clampedY);
+      splitXRef.current = clampedX;
+      splitYRef.current = clampedY;
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      // Save using refs to get current values
+      saveSplit({ splitX: splitXRef.current, splitY: splitYRef.current });
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, []);
+
   const handleReset = useCallback(() => {
     const defaultOrder = ALL_PANELS.map(p => p.id);
     setPanelOrder(defaultOrder);
+    setSplitX(50);
+    setSplitY(50);
     saveOrder(defaultOrder);
+    saveSplit({ splitX: 50, splitY: 50 });
   }, []);
 
   const orderedPanels = panelOrder
     .map(id => ALL_PANELS.find(p => p.id === id))
-    .filter((p): p is PanelConfig => p !== undefined);
+    .filter((p): p is PanelConfig => p !== null);
 
   if (!mounted) {
     return (
@@ -126,7 +215,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="w-full h-full relative" style={{ height: "calc(100vh - 50px)" }}>
+    <div
+      ref={containerRef}
+      className="w-full h-full relative"
+      style={{ height: "calc(100vh - 50px)" }}
+    >
       {/* Edit controls */}
       <div className="absolute top-2 right-2 z-50 flex gap-2">
         <button
@@ -166,8 +259,30 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Panel Grid */}
-      <div className="w-full h-full p-2 grid grid-cols-1 lg:grid-cols-2 grid-rows-4 lg:grid-rows-2 gap-2">
+      {/* Crosshair resize handle - only visible in edit mode */}
+      {isEditing && (
+        <div
+          className={`crosshair-handle ${isResizing ? "resizing" : ""}`}
+          style={{
+            left: `calc(${splitX}% - 12px)`,
+            top: `calc(${splitY}% - 12px)`,
+          }}
+          onMouseDown={handleResizeStart}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </div>
+      )}
+
+      {/* Panel Grid with dynamic sizing */}
+      <div
+        className="w-full h-full p-2 grid gap-2"
+        style={{
+          gridTemplateColumns: `${splitX}% 1fr`,
+          gridTemplateRows: `${splitY}% 1fr`,
+        }}
+      >
         {orderedPanels.map((panel) => {
           const Component = panel.component;
           const isDragging = draggedPanel === panel.id;
@@ -182,8 +297,8 @@ export default function Dashboard() {
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, panel.id)}
               onDragEnd={handleDragEnd}
-              className={`relative transition-all duration-200 ${
-                isEditing ? "cursor-move" : ""
+              className={`relative transition-all duration-200 panel-wrapper min-w-0 min-h-0 ${
+                isEditing ? "cursor-move editing" : ""
               } ${isDragging ? "opacity-50 scale-95" : ""} ${
                 isDragOver ? "ring-2 ring-red-500 ring-offset-2 ring-offset-black" : ""
               }`}
@@ -193,10 +308,10 @@ export default function Dashboard() {
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                   </svg>
-                  <span className="font-medium">Drag to swap with another panel</span>
+                  <span className="font-medium">Drag to swap</span>
                 </div>
               )}
-              <div className={`h-full ${isEditing ? "pointer-events-none pt-7" : ""}`}>
+              <div className={`h-full w-full overflow-hidden ${isEditing ? "pointer-events-none pt-7" : ""}`}>
                 <Component />
               </div>
             </div>
