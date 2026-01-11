@@ -3,6 +3,7 @@ import FlightPanel from "@/components/panels/FlightPanel";
 import StocksPanel from "@/components/panels/StocksPanel";
 import NewsPanel from "@/components/panels/NewsPanel";
 import EarthquakePanel from "@/components/panels/EarthquakePanel";
+import CyberThreatPanel from "@/components/panels/CyberThreatPanel";
 
 export interface PanelConfig {
   id: string;
@@ -48,6 +49,13 @@ export const PANEL_REGISTRY: PanelConfig[] = [
     description: "Real-time earthquake data from USGS",
     category: "monitor",
     component: EarthquakePanel,
+  },
+  {
+    id: "cyber",
+    title: "Cyber Threats",
+    description: "Real-time global cyber attack visualization",
+    category: "monitor",
+    component: CyberThreatPanel,
   },
 ];
 
