@@ -2,21 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Rules
+
+- **NEVER commit, push, or deploy without explicit user permission.** Always wait for the user to explicitly ask before running git commit, git push, or any deploy commands.
+
 ## Project Overview
 
-"Monitor the Situations" is a meme-inspired situation room dashboard that displays real-time world monitoring data. It features a dark ops-center aesthetic with red accents, showing flight radar, stock markets, breaking news, and intel source links.
+"Monitor the Situations" is a meme-inspired situation room dashboard that displays real-time world monitoring data. It features a dark ops-center aesthetic with red accents, showing flight radar, stock markets, breaking news, earthquakes, cyber threats, and intel source links.
 
 ## Commands
 
 ```bash
-# Development
 npm run dev           # Start Next.js dev server at localhost:3000
-
-# Production build
 npm run build         # Standard Next.js build
 npm run lint          # Run ESLint
-
-# Cloudflare deployment (manual)
 npm run cf:build      # Build for Cloudflare Workers (uses OpenNext)
 npm run cf:preview    # Build and preview locally with wrangler
 npm run cf:deploy     # Build and deploy to Cloudflare Workers
@@ -28,10 +27,6 @@ npm run cf:deploy     # Build and deploy to Cloudflare Workers
 
 GitHub Actions automatically deploys to Cloudflare Workers on every push to `main`. See `.github/workflows/deploy.yml`.
 
-Required GitHub Secrets:
-- `CLOUDFLARE_API_TOKEN` - API token with Workers Scripts (Edit) permission
-- `CLOUDFLARE_ACCOUNT_ID` - Cloudflare account ID
-
 ## Architecture
 
 ### Stack
@@ -40,62 +35,43 @@ Required GitHub Secrets:
 - **Deployment:** Cloudflare Workers via `@opennextjs/cloudflare`
 - **Mobile:** Swiper.js for swipe navigation
 
-### Component Structure
+### Key Directories
 
-```
-app/
-├── page.tsx              # Main page with LoadingScreen → Dashboard/MobileSwiper
-├── layout.tsx            # Root layout with JetBrains Mono font
-├── globals.css           # Tailwind + custom panel styles, scanlines, ticker animations
-└── api/
-    ├── defcon/route.ts   # Fetches DEFCON level (scrapes defconlevel.com or VIX fallback)
-    ├── stocks/route.ts   # Yahoo Finance proxy for stock quotes
-    ├── news/route.ts     # BBC/Reuters RSS feed parser
-    └── tweets/route.ts   # Twitter RSS bridge (RSSHub/Nitter - mostly broken)
-
-components/
-├── Dashboard.tsx         # CSS grid layout with crosshair resize (desktop)
-├── MobileSwiper.tsx      # Swiper-based panel navigation (mobile)
-├── Header.tsx            # Top bar with logo, threat level, monitoring counter
-├── ThreatLevel.tsx       # DEFCON-style indicator (fetches /api/defcon)
-├── MonitoringCounter.tsx # Fake visitor counter (fluctuates randomly)
-├── LoadingScreen.tsx     # Splash screen with world leader "monitoring" quotes
-└── panels/
-    ├── TwitterPanel.tsx  # Intel sources with categorized X/Twitter links
-    ├── FlightPanel.tsx   # ADS-B Exchange iframe embed
-    ├── StocksPanel.tsx   # Live stock data display
-    └── NewsPanel.tsx     # Breaking news ticker with scrolling headlines
-```
+- `app/` - Next.js App Router pages and API routes
+- `app/api/` - Backend API routes (defcon, stocks, news, earthquake, cyber-threats, tweets)
+- `components/` - React components (Dashboard, Header, LoadingScreen, etc.)
+- `components/panels/` - Individual dashboard panels (Flight, Stocks, News, Earthquake, CyberThreat, Twitter)
+- `hooks/` - Custom React hooks (useMediaQuery, useLocalStorage)
 
 ### Key Patterns
 
-- **Dynamic imports:** Dashboard and MobileSwiper use `next/dynamic` with `ssr: false` to avoid hydration issues with browser-only code
+- **Dynamic imports:** Dashboard and MobileSwiper use `next/dynamic` with `ssr: false` to avoid hydration issues
+- **Responsive layout:** `useMediaQuery` hook switches between Desktop (CSS Grid) and Mobile (Swiper)
 - **Panel data fetching:** Each panel fetches from internal API routes with caching headers
-- **Responsive layout:** Uses `useIsMobile` hook to switch between Dashboard (grid) and MobileSwiper (swipe)
-- **Session state:** LoadingScreen uses sessionStorage to show only once per session
+- **Layout persistence:** Dashboard layout (panel order, split ratios) persists in localStorage
 
 ### Dashboard Layout System
 
 The Dashboard uses CSS Grid with a "crosshair" resize pattern:
-- `splitX` and `splitY` percentages control grid track sizes (default 50%)
-- In edit mode, a draggable handle at the center intersection resizes all 4 panels
+- `splitX` and `splitY` percentages control grid track sizes
+- In edit mode, a draggable handle at the center resizes all panels
 - Panel order can be swapped via drag-and-drop
 - Layout persists in localStorage (`mts-order-v1`, `mts-split-v1` keys)
 
-### Cloudflare Deployment
+### Cloudflare Deployment Constraints
 
-Configured via `wrangler.toml` and `open-next.config.ts`:
+- Do NOT add `export const runtime = "edge"` to API routes or pages (breaks OpenNext build)
 - Uses OpenNext adapter to convert Next.js for Cloudflare Workers
-- Static assets served from `.open-next/assets`
-- API routes run as serverless functions
-- Do NOT add `export const runtime = "edge"` to API routes (breaks OpenNext build)
+- Configured via `wrangler.toml` and `open-next.config.ts`
 
 ### External Data Sources
 
-| Panel | Source | Notes |
-|-------|--------|-------|
-| Flight Radar | ADS-B Exchange | iframe embed, shows military aircraft |
-| Stocks | Yahoo Finance | Unofficial API, indices + defense + crypto |
-| News | BBC/Reuters RSS | Parsed server-side, 5-min cache |
-| DEFCON | defconlevel.com | Falls back to VIX-based estimation |
-| Intel | X/Twitter | Links only (API access required for tweets) |
+| Panel | API Route | Source |
+|-------|-----------|--------|
+| Flight Radar | - | ADS-B Exchange iframe embed |
+| Stocks | /api/stocks | Yahoo Finance (unofficial) |
+| News | /api/news | BBC/Reuters/NYT RSS feeds |
+| DEFCON | /api/defcon | defconlevel.com, VIX fallback |
+| Earthquakes | /api/earthquake | USGS earthquake feed |
+| Cyber Threats | /api/cyber-threats | Threat intelligence sources |
+| Intel | - | X/Twitter links (no API) |
