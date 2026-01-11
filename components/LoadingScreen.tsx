@@ -1,27 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getRandomQuote, Quote } from "@/lib/quotes";
 
 interface LoadingScreenProps {
   onComplete: () => void;
 }
 
+// Check session storage outside of React lifecycle
+function hasSeenLoading(): boolean {
+  if (typeof window === 'undefined') return false;
+  return sessionStorage.getItem("loading-seen") === "true";
+}
+
 export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
-  const [quote, setQuote] = useState<Quote | null>(null);
-  const [isVisible, setIsVisible] = useState(true);
+  // Use lazy initialization to check session storage
+  const [quote] = useState<Quote | null>(() => hasSeenLoading() ? null : getRandomQuote());
+  const [isVisible, setIsVisible] = useState(() => !hasSeenLoading());
+  const completedRef = useRef(false);
+
+  const handleDismiss = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    setIsVisible(false);
+    sessionStorage.setItem("loading-seen", "true");
+    onComplete();
+  }, [onComplete]);
 
   useEffect(() => {
-    // Check if already seen this session
-    const hasSeen = sessionStorage.getItem("loading-seen");
-    if (hasSeen) {
-      setIsVisible(false);
+    // If already seen, call onComplete immediately
+    if (!isVisible) {
       onComplete();
       return;
     }
-
-    // Set quote
-    setQuote(getRandomQuote());
 
     // Auto-dismiss after 3 seconds
     const timer = setTimeout(() => {
@@ -29,13 +40,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [onComplete]);
-
-  const handleDismiss = () => {
-    setIsVisible(false);
-    sessionStorage.setItem("loading-seen", "true");
-    onComplete();
-  };
+  }, [isVisible, onComplete, handleDismiss]);
 
   if (!isVisible) return null;
 

@@ -22,6 +22,8 @@ export default function FlightPanel() {
           title="ADS-B Exchange Flight Radar"
           allow="fullscreen"
           loading="lazy"
+          sandbox="allow-scripts allow-same-origin allow-popups"
+          referrerPolicy="no-referrer"
         />
       </div>
       <div className="bg-black/50 text-[10px] text-gray-500 px-2 py-1 text-center">

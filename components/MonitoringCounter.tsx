@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 
+// Generate initial count outside component to avoid hydration mismatch
+function getInitialCount() {
+  if (typeof window === 'undefined') return 1337; // SSR fallback
+  return Math.floor(Math.random() * 4500) + 500;
+}
+
 export default function MonitoringCounter() {
-  const [count, setCount] = useState(0);
+  const [count, setCount] = useState(getInitialCount);
 
   useEffect(() => {
-    // Generate initial realistic count between 500-5000
-    const baseCount = Math.floor(Math.random() * 4500) + 500;
-    setCount(baseCount);
-
     // Fluctuate every 3-7 seconds
     const interval = setInterval(() => {
       setCount(prev => {

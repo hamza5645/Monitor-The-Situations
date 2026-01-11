@@ -33,9 +33,12 @@ export default function TwitterPanel() {
   const handleCustomSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (customHandle.trim()) {
-      const clean = customHandle.trim().replace(/^@/, "");
-      window.open(`https://x.com/${clean}`, "_blank");
-      setCustomHandle("");
+      // Sanitize: remove @ prefix and only allow alphanumeric + underscore
+      const clean = customHandle.trim().replace(/^@/, "").replace(/[^a-zA-Z0-9_]/g, "");
+      if (clean) {
+        window.open(`https://x.com/${clean}`, "_blank", "noopener,noreferrer");
+        setCustomHandle("");
+      }
     }
   };
 

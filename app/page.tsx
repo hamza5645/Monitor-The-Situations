@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -25,14 +25,15 @@ const MobileSwiper = dynamic(() => import("@/components/MobileSwiper"), {
   ),
 });
 
+// Use useSyncExternalStore for hydration-safe mounted state
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export default function Home() {
   const [showLoading, setShowLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLoadingComplete = () => {
     setShowLoading(false);

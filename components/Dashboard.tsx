@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from "react";
 import TwitterPanel from "./panels/TwitterPanel";
 import FlightPanel from "./panels/FlightPanel";
 import StocksPanel from "./panels/StocksPanel";
@@ -74,32 +74,35 @@ function saveSplit(split: SplitPosition) {
   }
 }
 
+// Hydration-safe mounted state using useSyncExternalStore
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 export default function Dashboard() {
-  const [mounted, setMounted] = useState(false);
-  const [panelOrder, setPanelOrder] = useState<string[]>(ALL_PANELS.map(p => p.id));
+  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+
+  // Use lazy initializers to read from localStorage on client
+  const [panelOrder, setPanelOrder] = useState<string[]>(() => {
+    const stored = getStoredOrder();
+    return stored || ALL_PANELS.map(p => p.id);
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [draggedPanel, setDraggedPanel] = useState<string | null>(null);
   const [dragOverPanel, setDragOverPanel] = useState<string | null>(null);
 
-  // Split position state (percentage-based)
-  const [splitX, setSplitX] = useState(50);
-  const [splitY, setSplitY] = useState(50);
+  // Split position state (percentage-based) with lazy initialization
+  const [splitX, setSplitX] = useState(() => {
+    const stored = getStoredSplit();
+    return stored?.splitX ?? 50;
+  });
+  const [splitY, setSplitY] = useState(() => {
+    const stored = getStoredSplit();
+    return stored?.splitY ?? 50;
+  });
   const [isResizing, setIsResizing] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-    const storedOrder = getStoredOrder();
-    if (storedOrder) {
-      setPanelOrder(storedOrder);
-    }
-    const storedSplit = getStoredSplit();
-    if (storedSplit) {
-      setSplitX(storedSplit.splitX);
-      setSplitY(storedSplit.splitY);
-    }
-  }, []);
 
   // Drag handlers for reordering
   const handleDragStart = useCallback((e: React.DragEvent, panelId: string) => {
