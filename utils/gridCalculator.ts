@@ -5,6 +5,13 @@ export interface GridDimensions {
   templateRows: string;
 }
 
+export interface CrosshairPosition {
+  x: number; // percentage
+  y: number; // percentage
+  xIndex: number; // which X split this controls
+  yIndex: number; // which Y split this controls
+}
+
 /**
  * Calculate optimal grid dimensions for n panels
  * Strategy: Prefer wider grids (more columns) for landscape displays
@@ -19,8 +26,8 @@ export interface GridDimensions {
  */
 export function calculateGridDimensions(
   panelCount: number,
-  splitX: number = 50,
-  splitY: number = 50
+  splitXs: number[] = [50],
+  splitYs: number[] = [50]
 ): GridDimensions {
   if (panelCount <= 0) {
     return { cols: 1, rows: 1, templateColumns: "1fr", templateRows: "1fr" };
@@ -53,33 +60,145 @@ export function calculateGridDimensions(
     rows = Math.ceil(panelCount / cols);
   }
 
-  // Generate template strings
-  const templateColumns = generateTemplate(cols, splitX, cols === 2);
-  const templateRows = generateTemplate(rows, splitY, rows === 2);
+  // Generate template strings with proper splits
+  const templateColumns = generateTemplate(cols, splitXs);
+  const templateRows = generateTemplate(rows, splitYs);
 
   return { cols, rows, templateColumns, templateRows };
 }
 
-function generateTemplate(
-  count: number,
-  splitPercent: number,
-  useSplit: boolean
-): string {
+/**
+ * Generate CSS grid template string from split positions
+ * splits array contains cumulative percentages where each column/row ends
+ * e.g., [33, 66] means: first is 33%, second is 33% (66-33), third is 34% (100-66)
+ */
+function generateTemplate(count: number, splits: number[]): string {
   if (count === 1) return "1fr";
 
-  if (count === 2 && useSplit) {
-    // Use custom split for 2-item layouts
-    return `${splitPercent}% 1fr`;
+  // For grids with splits, calculate each track size from split positions
+  const trackSizes: string[] = [];
+  let prevSplit = 0;
+
+  for (let i = 0; i < count; i++) {
+    if (i < splits.length) {
+      // Use the split value (percentage where this track ends)
+      const trackEnd = splits[i];
+      const trackSize = trackEnd - prevSplit;
+      trackSizes.push(`${trackSize}%`);
+      prevSplit = trackEnd;
+    } else {
+      // Last track takes remaining space
+      const remaining = 100 - prevSplit;
+      trackSizes.push(`${remaining}%`);
+    }
   }
 
-  // Equal distribution for 3+ items
-  return Array(count).fill("1fr").join(" ");
+  return trackSizes.join(" ");
 }
 
 /**
- * Check if the crosshair resize should be enabled
- * Only works for 2x2 grids
+ * Generate default split positions for a given number of columns/rows
+ * Returns evenly distributed positions
+ */
+export function generateDefaultSplits(count: number): number[] {
+  if (count <= 1) return [];
+
+  const splits: number[] = [];
+  const step = 100 / count;
+
+  for (let i = 1; i < count; i++) {
+    splits.push(Math.round(step * i));
+  }
+
+  return splits;
+}
+
+/**
+ * Get crosshair positions for the grid
+ * Returns array of positions where crosshairs should appear (at grid intersections)
+ */
+export function getCrosshairPositions(
+  cols: number,
+  rows: number,
+  splitXs: number[],
+  splitYs: number[]
+): CrosshairPosition[] {
+  const positions: CrosshairPosition[] = [];
+
+  // We need at least 2 columns and 2 rows for any crosshair
+  if (cols < 2 || rows < 2) return positions;
+
+  // Create a crosshair at each intersection
+  for (let xIndex = 0; xIndex < splitXs.length && xIndex < cols - 1; xIndex++) {
+    for (let yIndex = 0; yIndex < splitYs.length && yIndex < rows - 1; yIndex++) {
+      positions.push({
+        x: splitXs[xIndex],
+        y: splitYs[yIndex],
+        xIndex,
+        yIndex,
+      });
+    }
+  }
+
+  return positions;
+}
+
+/**
+ * Check if crosshair resize should be enabled for this grid
  */
 export function shouldShowCrosshairResize(cols: number, rows: number): boolean {
-  return cols === 2 && rows === 2;
+  return cols >= 2 && rows >= 2;
+}
+
+/**
+ * Migrate old layout format (single splitX/splitY) to new format (arrays)
+ */
+export function migrateLayoutSplits(
+  splitX: number | undefined,
+  splitY: number | undefined,
+  splitXs: number[] | undefined,
+  splitYs: number[] | undefined
+): { splitXs: number[]; splitYs: number[] } {
+  // If new format exists, use it
+  if (splitXs && splitXs.length > 0 && splitYs && splitYs.length > 0) {
+    return { splitXs, splitYs };
+  }
+
+  // Migrate from old format
+  return {
+    splitXs: [splitX ?? 50],
+    splitYs: [splitY ?? 50],
+  };
+}
+
+/**
+ * Ensure splits array has correct length for grid dimensions
+ * Adds/removes entries as needed while preserving existing values
+ */
+export function normalizeSplits(
+  currentSplits: number[],
+  requiredCount: number
+): number[] {
+  const required = requiredCount - 1; // number of dividers = columns/rows - 1
+
+  if (required <= 0) return [];
+
+  if (currentSplits.length === required) {
+    return currentSplits;
+  }
+
+  // Generate new splits based on even distribution
+  const newSplits: number[] = [];
+  const step = 100 / requiredCount;
+
+  for (let i = 1; i <= required; i++) {
+    // Try to preserve existing value if available
+    if (i <= currentSplits.length && currentSplits[i - 1] !== undefined) {
+      newSplits.push(currentSplits[i - 1]);
+    } else {
+      newSplits.push(Math.round(step * i));
+    }
+  }
+
+  return newSplits;
 }

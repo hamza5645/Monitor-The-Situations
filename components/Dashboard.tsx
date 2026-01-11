@@ -4,7 +4,14 @@ import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore
 import { useSituation } from "@/context/SituationContext";
 import { DEFAULT_LAYOUT } from "@/types/situation";
 import { getPanelById, type PanelConfig } from "@/config/panelRegistry";
-import { calculateGridDimensions, shouldShowCrosshairResize } from "@/utils/gridCalculator";
+import {
+  calculateGridDimensions,
+  shouldShowCrosshairResize,
+  getCrosshairPositions,
+  normalizeSplits,
+  migrateLayoutSplits,
+  type CrosshairPosition,
+} from "@/utils/gridCalculator";
 import WidgetSelector from "./WidgetSelector";
 
 // Hydration-safe mounted state using useSyncExternalStore
@@ -21,13 +28,13 @@ export default function Dashboard() {
   const [visiblePanels, setVisiblePanels] = useState<string[]>(
     DEFAULT_LAYOUT.visiblePanels || DEFAULT_LAYOUT.order
   );
-  const [splitX, setSplitX] = useState(DEFAULT_LAYOUT.splitX);
-  const [splitY, setSplitY] = useState(DEFAULT_LAYOUT.splitY);
+  const [splitXs, setSplitXs] = useState<number[]>(DEFAULT_LAYOUT.splitXs);
+  const [splitYs, setSplitYs] = useState<number[]>(DEFAULT_LAYOUT.splitYs);
 
   const [isEditing, setIsEditing] = useState(false);
   const [draggedPanel, setDraggedPanel] = useState<string | null>(null);
   const [dragOverPanel, setDragOverPanel] = useState<string | null>(null);
-  const [isResizing, setIsResizing] = useState(false);
+  const [activeCrosshair, setActiveCrosshair] = useState<{ xIndex: number; yIndex: number } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -36,18 +43,44 @@ export default function Dashboard() {
     if (activeLayout) {
       setPanelOrder(activeLayout.order);
       setVisiblePanels(activeLayout.visiblePanels || activeLayout.order);
-      setSplitX(activeLayout.splitX);
-      setSplitY(activeLayout.splitY);
+
+      // Migrate from old format if needed
+      const { splitXs: migratedXs, splitYs: migratedYs } = migrateLayoutSplits(
+        activeLayout.splitX,
+        activeLayout.splitY,
+        activeLayout.splitXs,
+        activeLayout.splitYs
+      );
+      setSplitXs(migratedXs);
+      setSplitYs(migratedYs);
     }
   }, [activeLayout, activeSituationId]);
 
   // Calculate grid dimensions based on visible panel count
   const gridDimensions = useMemo(() => {
-    return calculateGridDimensions(visiblePanels.length, splitX, splitY);
-  }, [visiblePanels.length, splitX, splitY]);
+    return calculateGridDimensions(visiblePanels.length, splitXs, splitYs);
+  }, [visiblePanels.length, splitXs, splitYs]);
 
-  // Check if crosshair resize should be shown (only for 2x2 grids)
+  // Normalize splits when grid size changes
+  useEffect(() => {
+    const normalizedXs = normalizeSplits(splitXs, gridDimensions.cols);
+    const normalizedYs = normalizeSplits(splitYs, gridDimensions.rows);
+
+    if (JSON.stringify(normalizedXs) !== JSON.stringify(splitXs)) {
+      setSplitXs(normalizedXs);
+    }
+    if (JSON.stringify(normalizedYs) !== JSON.stringify(splitYs)) {
+      setSplitYs(normalizedYs);
+    }
+  }, [gridDimensions.cols, gridDimensions.rows, splitXs, splitYs]);
+
+  // Check if crosshair resize should be shown
   const showCrosshairResize = shouldShowCrosshairResize(gridDimensions.cols, gridDimensions.rows);
+
+  // Get all crosshair positions
+  const crosshairPositions = useMemo(() => {
+    return getCrosshairPositions(gridDimensions.cols, gridDimensions.rows, splitXs, splitYs);
+  }, [gridDimensions.cols, gridDimensions.rows, splitXs, splitYs]);
 
   // Handle panel toggle from widget selector
   const handleTogglePanel = useCallback((panelId: string, enabled: boolean) => {
@@ -115,54 +148,80 @@ export default function Dashboard() {
   }, []);
 
   // Refs to track current split values during resize
-  const splitXRef = useRef(splitX);
-  const splitYRef = useRef(splitY);
+  const splitXsRef = useRef(splitXs);
+  const splitYsRef = useRef(splitYs);
 
   // Keep refs in sync
   useEffect(() => {
-    splitXRef.current = splitX;
-    splitYRef.current = splitY;
-  }, [splitX, splitY]);
+    splitXsRef.current = splitXs;
+    splitYsRef.current = splitYs;
+  }, [splitXs, splitYs]);
 
   // Crosshair resize handler
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+  const handleResizeStart = useCallback((e: React.MouseEvent, crosshair: CrosshairPosition) => {
     e.preventDefault();
     e.stopPropagation();
     const container = containerRef.current;
     if (!container) return;
 
-    setIsResizing(true);
+    setActiveCrosshair({ xIndex: crosshair.xIndex, yIndex: crosshair.yIndex });
     const rect = container.getBoundingClientRect();
 
     const handleMouseMove = (e: MouseEvent) => {
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-      // Clamp between 20% and 80% to prevent panels from disappearing
-      const clampedX = Math.min(80, Math.max(20, x));
-      const clampedY = Math.min(80, Math.max(20, y));
+      // Calculate constraints based on neighboring splits
+      const cols = gridDimensions.cols;
+      const rows = gridDimensions.rows;
 
-      setSplitX(clampedX);
-      setSplitY(clampedY);
-      splitXRef.current = clampedX;
-      splitYRef.current = clampedY;
+      // X constraints: must be between previous split (or 0) and next split (or 100)
+      // With minimum 15% between each
+      const minGap = 15;
+      const prevXSplit = crosshair.xIndex > 0 ? splitXsRef.current[crosshair.xIndex - 1] : 0;
+      const nextXSplit = crosshair.xIndex < cols - 2 ? splitXsRef.current[crosshair.xIndex + 1] : 100;
+      const minX = prevXSplit + minGap;
+      const maxX = nextXSplit - minGap;
+      const clampedX = Math.min(maxX, Math.max(minX, x));
+
+      // Y constraints: same logic
+      const prevYSplit = crosshair.yIndex > 0 ? splitYsRef.current[crosshair.yIndex - 1] : 0;
+      const nextYSplit = crosshair.yIndex < rows - 2 ? splitYsRef.current[crosshair.yIndex + 1] : 100;
+      const minY = prevYSplit + minGap;
+      const maxY = nextYSplit - minGap;
+      const clampedY = Math.min(maxY, Math.max(minY, y));
+
+      // Update the specific split index
+      setSplitXs(prev => {
+        const newSplits = [...prev];
+        newSplits[crosshair.xIndex] = clampedX;
+        splitXsRef.current = newSplits;
+        return newSplits;
+      });
+
+      setSplitYs(prev => {
+        const newSplits = [...prev];
+        newSplits[crosshair.yIndex] = clampedY;
+        splitYsRef.current = newSplits;
+        return newSplits;
+      });
     };
 
     const handleMouseUp = () => {
-      setIsResizing(false);
+      setActiveCrosshair(null);
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
 
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-  }, []);
+  }, [gridDimensions.cols, gridDimensions.rows]);
 
   const handleReset = useCallback(() => {
     setPanelOrder(DEFAULT_LAYOUT.order);
     setVisiblePanels(DEFAULT_LAYOUT.visiblePanels || DEFAULT_LAYOUT.order);
-    setSplitX(DEFAULT_LAYOUT.splitX);
-    setSplitY(DEFAULT_LAYOUT.splitY);
+    setSplitXs(DEFAULT_LAYOUT.splitXs);
+    setSplitYs(DEFAULT_LAYOUT.splitYs);
   }, []);
 
   // Save layout to context when clicking Done
@@ -170,19 +229,26 @@ export default function Dashboard() {
     updateActiveLayout({
       order: panelOrder.filter((id) => visiblePanels.includes(id)),
       visiblePanels,
-      splitX,
-      splitY,
+      splitXs,
+      splitYs,
     });
     setIsEditing(false);
-  }, [panelOrder, visiblePanels, splitX, splitY, updateActiveLayout]);
+  }, [panelOrder, visiblePanels, splitXs, splitYs, updateActiveLayout]);
 
   // Cancel editing and revert to saved layout
   const handleCancel = useCallback(() => {
     if (activeLayout) {
       setPanelOrder(activeLayout.order);
       setVisiblePanels(activeLayout.visiblePanels || activeLayout.order);
-      setSplitX(activeLayout.splitX);
-      setSplitY(activeLayout.splitY);
+
+      const { splitXs: migratedXs, splitYs: migratedYs } = migrateLayoutSplits(
+        activeLayout.splitX,
+        activeLayout.splitY,
+        activeLayout.splitXs,
+        activeLayout.splitYs
+      );
+      setSplitXs(migratedXs);
+      setSplitYs(migratedYs);
     }
     setIsEditing(false);
   }, [activeLayout]);
@@ -257,21 +323,25 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Crosshair resize handle - only visible in edit mode for 2x2 grids */}
-      {isEditing && showCrosshairResize && (
-        <div
-          className={`crosshair-handle ${isResizing ? "resizing" : ""}`}
-          style={{
-            left: `calc(${splitX}% - 12px)`,
-            top: `calc(${splitY}% - 12px)`,
-          }}
-          onMouseDown={handleResizeStart}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-          </svg>
-        </div>
-      )}
+      {/* Multiple crosshair resize handles - only visible in edit mode */}
+      {isEditing && showCrosshairResize && crosshairPositions.map((crosshair) => {
+        const isActive = activeCrosshair?.xIndex === crosshair.xIndex && activeCrosshair?.yIndex === crosshair.yIndex;
+        return (
+          <div
+            key={`crosshair-${crosshair.xIndex}-${crosshair.yIndex}`}
+            className={`crosshair-handle ${isActive ? "resizing" : ""}`}
+            style={{
+              left: `calc(${crosshair.x}% - 12px)`,
+              top: `calc(${crosshair.y}% - 12px)`,
+            }}
+            onMouseDown={(e) => handleResizeStart(e, crosshair)}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+            </svg>
+          </div>
+        );
+      })}
 
       {/* Panel Grid with dynamic sizing */}
       <div

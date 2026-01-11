@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import type { SituationConfig, SituationsState, LayoutConfig } from "@/types/situation";
 import { DEFAULT_LAYOUT } from "@/types/situation";
 import { PRESET_SITUATIONS, DEFAULT_SITUATION } from "@/data/presetSituations";
+import { migrateLayoutSplits } from "@/utils/gridCalculator";
 
 const STORAGE_KEY = "mts-situations-v1";
 
@@ -36,6 +37,17 @@ function generateId(): string {
   });
 }
 
+// Migrate a layout from old format (splitX/splitY) to new format (splitXs/splitYs)
+function migrateLayout(layout: LayoutConfig): LayoutConfig {
+  const { splitXs, splitYs } = migrateLayoutSplits(
+    layout.splitX,
+    layout.splitY,
+    layout.splitXs,
+    layout.splitYs
+  );
+  return { ...layout, splitXs, splitYs };
+}
+
 // Load state from localStorage
 function loadState(): SituationsState {
   if (typeof window === "undefined") {
@@ -49,6 +61,20 @@ function loadState(): SituationsState {
       if (!parsed.presetLayoutOverrides) {
         parsed.presetLayoutOverrides = {};
       }
+
+      // Migrate old layout format in presetLayoutOverrides
+      for (const key of Object.keys(parsed.presetLayoutOverrides)) {
+        parsed.presetLayoutOverrides[key] = migrateLayout(parsed.presetLayoutOverrides[key]);
+      }
+
+      // Migrate old layout format in custom situations
+      parsed.customSituations = parsed.customSituations.map((s) => {
+        if (s.layout) {
+          return { ...s, layout: migrateLayout(s.layout) };
+        }
+        return s;
+      });
+
       return parsed;
     }
   } catch (e) {

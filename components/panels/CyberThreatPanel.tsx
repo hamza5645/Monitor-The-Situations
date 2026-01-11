@@ -37,7 +37,7 @@ export default function CyberThreatPanel() {
   const threatsRef = useRef<ThreatData[]>([]);
   const mapImageRef = useRef<HTMLImageElement | null>(null);
   const processedMapRef = useRef<HTMLCanvasElement | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const drawRef = useRef<(() => void) | null>(null);
 
   const fetchThreats = useCallback(async () => {
     try {
@@ -66,11 +66,9 @@ export default function CyberThreatPanel() {
     const img = new Image();
     img.onload = () => {
       mapImageRef.current = img;
-      setMapLoaded(true);
     };
     img.onerror = () => {
       console.error("Failed to load map image");
-      setMapLoaded(true); // Continue without image
     };
     img.src = "/world-map-dark.png";
   }, []);
@@ -237,8 +235,11 @@ export default function CyberThreatPanel() {
       ctx.fill();
     });
 
-    animationRef.current = requestAnimationFrame(draw);
+    animationRef.current = requestAnimationFrame(() => drawRef.current?.());
   }, []);
+
+  // Keep ref in sync
+  drawRef.current = draw;
 
   useEffect(() => {
     fetchThreats();
@@ -265,8 +266,8 @@ export default function CyberThreatPanel() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Start animation
-    draw();
+    // Start animation using ref to avoid dependency issues
+    drawRef.current?.();
 
     return () => {
       window.removeEventListener("resize", resizeCanvas);
@@ -274,7 +275,7 @@ export default function CyberThreatPanel() {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [draw]);
+  }, []);
 
   return (
     <div className="panel h-full flex flex-col">

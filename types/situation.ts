@@ -54,15 +54,21 @@ export interface EarthquakeConfig {
 export interface LayoutConfig {
   order: string[];
   visiblePanels?: string[]; // Which panels are enabled (subset of all available)
-  splitX: number;
-  splitY: number;
+  // Array of split percentages for grid dividers
+  // For 2 columns: splitXs = [50] means first column is 50%
+  // For 3 columns: splitXs = [33, 66] means first ends at 33%, second at 66%
+  splitXs: number[];
+  splitYs: number[];
+  // Legacy single-split support (for backward compatibility)
+  splitX?: number;
+  splitY?: number;
 }
 
 export const DEFAULT_LAYOUT: LayoutConfig = {
   order: ["twitter", "flight", "stocks", "news"],
   visiblePanels: ["twitter", "flight", "stocks", "news"],
-  splitX: 50,
-  splitY: 50,
+  splitXs: [50],
+  splitYs: [50],
 };
 
 // Complete Situation configuration
