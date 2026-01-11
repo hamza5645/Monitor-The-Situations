@@ -138,7 +138,7 @@ body {
 
 .ticker-content {
   display: inline-block;
-  animation: ticker 30s linear infinite;
+  animation: ticker 300s linear infinite;
 }
 
 @keyframes ticker {
