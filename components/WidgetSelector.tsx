@@ -56,33 +56,42 @@ export default function WidgetSelector({
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border bg-black/50 border-red-900/50 text-red-400 hover:bg-red-900/30 transition-colors"
+        className={`group flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-all duration-200 ${
+          isOpen
+            ? "bg-red-950/50 text-red-300"
+            : "text-red-400/80 hover:text-red-300 hover:bg-red-950/30"
+        }`}
       >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? "rotate-45" : "group-hover:rotate-90"}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
         </svg>
         Widgets
-        <span className="ml-1 px-1.5 py-0.5 bg-red-900/30 rounded text-[10px]">
+        <span className="ml-0.5 px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded text-[10px] font-medium tabular-nums border border-red-900/30">
           {visiblePanels.length}
         </span>
       </button>
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 w-72 bg-black/95 border border-red-900/50 rounded shadow-lg shadow-red-900/20 z-50 overflow-hidden">
+        <div className="absolute top-full right-0 mt-2 w-72 bg-black/95 backdrop-blur-md border border-red-900/40 rounded-lg shadow-xl shadow-black/60 z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Header */}
-          <div className="px-3 py-2 border-b border-red-900/30 bg-red-900/10">
-            <p className="text-xs text-red-100 font-medium">Select Widgets</p>
+          <div className="px-3 py-2.5 border-b border-red-900/20 bg-gradient-to-b from-red-950/30 to-transparent">
+            <p className="text-xs text-red-100 font-medium tracking-wide">Select Widgets</p>
             <p className="text-[10px] text-gray-500 mt-0.5">
-              {visiblePanels.length}/{maxPanels} active
+              <span className="text-red-400 font-medium">{visiblePanels.length}</span>/{maxPanels} active
             </p>
           </div>
 
           {/* Panel List by Category */}
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-red-900/30 scrollbar-track-transparent">
             {Object.entries(panelsByCategory).map(([category, panels]) => (
-              <div key={category} className="p-2 border-b border-red-900/20 last:border-b-0">
-                <p className="text-[10px] uppercase tracking-wider text-red-400/50 px-2 mb-1">
+              <div key={category} className="p-2 border-b border-red-950/30 last:border-b-0">
+                <p className="text-[10px] uppercase tracking-widest text-red-500/40 font-medium px-2 mb-1.5">
                   {CATEGORY_LABELS[category] || category}
                 </p>
 
@@ -96,30 +105,34 @@ export default function WidgetSelector({
                       key={panel.id}
                       onClick={() => handleToggle(panel.id)}
                       disabled={isDisabled || isLastPanel}
-                      className={`w-full flex items-center gap-3 px-2 py-2 rounded text-xs transition-colors text-left ${
+                      className={`group w-full flex items-center gap-3 px-2 py-2 rounded-md text-xs transition-all duration-150 text-left ${
                         isVisible
-                          ? "bg-red-900/30 text-white"
-                          : "text-red-100/70 hover:bg-red-900/20"
-                      } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""} ${
-                        isLastPanel ? "opacity-70 cursor-not-allowed" : ""
+                          ? "bg-red-950/40 text-white"
+                          : "text-red-100/60 hover:text-red-100/90 hover:bg-red-950/20"
+                      } ${isDisabled ? "opacity-40 cursor-not-allowed" : ""} ${
+                        isLastPanel ? "opacity-60 cursor-not-allowed" : ""
                       }`}
                     >
                       {/* Checkbox indicator */}
                       <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                          isVisible ? "bg-red-600 border-red-500" : "border-red-900/50"
+                        className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
+                          isVisible
+                            ? "bg-gradient-to-b from-red-500 to-red-600 shadow-sm shadow-red-950/50"
+                            : "border border-red-900/40 group-hover:border-red-800/60"
                         }`}
                       >
                         {isVisible && (
                           <svg
-                            className="w-3 h-3 text-white"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
+                            className="w-2.5 h-2.5 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                            viewBox="0 0 24 24"
                           >
                             <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
                             />
                           </svg>
                         )}
