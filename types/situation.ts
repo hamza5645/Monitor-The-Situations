@@ -65,6 +65,16 @@ export interface WeatherConfig {
   includeMarine?: boolean;
 }
 
+// World clock panel configuration
+export interface ClockZoneConfig {
+  city: string;
+  timezone: string; // IANA timezone e.g. "America/New_York"
+}
+
+export interface WorldClockConfig {
+  zones: ClockZoneConfig[];
+}
+
 // Layout configuration - panel order and split positions
 export interface LayoutConfig {
   order: string[];
@@ -100,6 +110,7 @@ export interface SituationConfig {
   intel: IntelConfig;
   earthquake?: EarthquakeConfig;
   weather?: WeatherConfig;
+  clock?: WorldClockConfig;
   layout?: LayoutConfig;
 }
 

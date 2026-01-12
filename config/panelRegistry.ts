@@ -6,6 +6,7 @@ import EarthquakePanel from "@/components/panels/EarthquakePanel";
 import CyberThreatPanel from "@/components/panels/CyberThreatPanel";
 import WeatherAlertsPanel from "@/components/panels/WeatherAlertsPanel";
 import FearGreedPanel from "@/components/panels/FearGreedPanel";
+import WorldClockPanel from "@/components/panels/WorldClockPanel";
 
 export interface PanelConfig {
   id: string;
@@ -72,6 +73,13 @@ export const PANEL_REGISTRY: PanelConfig[] = [
     description: "Real-time NOAA weather alerts and warnings",
     category: "monitor",
     component: WeatherAlertsPanel,
+  },
+  {
+    id: "world-clock",
+    title: "World Clock",
+    description: "Key geopolitical time zones",
+    category: "monitor",
+    component: WorldClockPanel,
   },
 ];
 

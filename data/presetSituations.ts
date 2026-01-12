@@ -104,6 +104,15 @@ export const DEFAULT_SITUATION: SituationConfig = {
     severityFilter: ["Extreme", "Severe"],
     includeMarine: false,
   },
+  clock: {
+    zones: [
+      { city: "Washington DC", timezone: "America/New_York" },
+      { city: "Moscow", timezone: "Europe/Moscow" },
+      { city: "Beijing", timezone: "Asia/Shanghai" },
+      { city: "Gaza", timezone: "Asia/Gaza" },
+      { city: "Kyiv", timezone: "Europe/Kyiv" },
+    ],
+  },
 };
 
 export const VENEZUELA_SITUATION: SituationConfig = {
@@ -196,6 +205,15 @@ export const VENEZUELA_SITUATION: SituationConfig = {
     severityFilter: ["Extreme", "Severe", "Moderate"],
     includeMarine: true, // Include marine/tropical alerts
   },
+  clock: {
+    zones: [
+      { city: "Caracas", timezone: "America/Caracas" },
+      { city: "Washington DC", timezone: "America/New_York" },
+      { city: "Bogotá", timezone: "America/Bogota" },
+      { city: "Brasília", timezone: "America/Sao_Paulo" },
+      { city: "Mexico City", timezone: "America/Mexico_City" },
+    ],
+  },
 };
 
 export const GAZA_SITUATION: SituationConfig = {
@@ -284,6 +302,15 @@ export const GAZA_SITUATION: SituationConfig = {
       lon: 34.5,
       radiusKm: 500,
     },
+  },
+  clock: {
+    zones: [
+      { city: "Gaza", timezone: "Asia/Gaza" },
+      { city: "Tehran", timezone: "Asia/Tehran" },
+      { city: "Cairo", timezone: "Africa/Cairo" },
+      { city: "Washington DC", timezone: "America/New_York" },
+      { city: "Moscow", timezone: "Europe/Moscow" },
+    ],
   },
 };
 
@@ -385,6 +412,15 @@ export const GREENLAND_SITUATION: SituationConfig = {
     },
     severityFilter: ["Extreme", "Severe", "Moderate"],
     includeMarine: true, // Include Arctic marine alerts
+  },
+  clock: {
+    zones: [
+      { city: "Nuuk", timezone: "America/Nuuk" },
+      { city: "Copenhagen", timezone: "Europe/Copenhagen" },
+      { city: "Washington DC", timezone: "America/New_York" },
+      { city: "Moscow", timezone: "Europe/Moscow" },
+      { city: "Ottawa", timezone: "America/Toronto" },
+    ],
   },
 };
 

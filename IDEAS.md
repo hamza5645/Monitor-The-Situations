@@ -12,7 +12,7 @@ A collection of potential enhancements for Monitor the Situations.
 - [x] **Weather Alerts** - NOAA severe weather warnings
 - [x] **VIX Fear Gauge** - Visual meter showing market volatility
 - [x] **Gold/Oil/Crypto** - Expand stocks panel with commodities (Added Commodities group: Gold, Silver, Crude Oil, Natural Gas)
-- [ ] **World Clock** - Key time zones (DC, Moscow, Beijing, Jerusalem, Kyiv)
+- [x] **World Clock** - Key time zones (DC, Moscow, Beijing, Jerusalem, Kyiv)
 
 ---
 
