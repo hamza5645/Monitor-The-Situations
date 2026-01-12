@@ -88,6 +88,13 @@ export const DEFAULT_SITUATION: SituationConfig = {
     feed: "all_hour",
     minMagnitude: 4.0,
   },
+  weather: {
+    regions: {
+      states: [], // Empty = nationwide
+    },
+    severityFilter: ["Extreme", "Severe"],
+    includeMarine: false,
+  },
 };
 
 export const VENEZUELA_SITUATION: SituationConfig = {
@@ -172,6 +179,13 @@ export const VENEZUELA_SITUATION: SituationConfig = {
       lon: -66.9,
       radiusKm: 2000,
     },
+  },
+  weather: {
+    regions: {
+      states: ["TX", "LA", "FL", "AL", "MS", "GA"], // Gulf Coast states
+    },
+    severityFilter: ["Extreme", "Severe", "Moderate"],
+    includeMarine: true, // Include marine/tropical alerts
   },
 };
 
@@ -355,6 +369,13 @@ export const GREENLAND_SITUATION: SituationConfig = {
       lon: -40.0,
       radiusKm: 3000,
     },
+  },
+  weather: {
+    regions: {
+      states: ["AK", "WA", "MT", "ND", "MN", "WI", "MI", "ME", "VT", "NH"], // Northern states
+    },
+    severityFilter: ["Extreme", "Severe", "Moderate"],
+    includeMarine: true, // Include Arctic marine alerts
   },
 };
 

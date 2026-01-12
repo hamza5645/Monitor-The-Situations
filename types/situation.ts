@@ -50,6 +50,21 @@ export interface EarthquakeConfig {
   };
 }
 
+// Weather alerts panel configuration
+export interface WeatherConfig {
+  regions?: {
+    states?: string[]; // US state codes: ["TX", "FL", "LA"]
+  };
+  severityFilter?: (
+    | "Extreme"
+    | "Severe"
+    | "Moderate"
+    | "Minor"
+    | "Unknown"
+  )[];
+  includeMarine?: boolean;
+}
+
 // Layout configuration - panel order and split positions
 export interface LayoutConfig {
   order: string[];
@@ -84,6 +99,7 @@ export interface SituationConfig {
   news: NewsConfig;
   intel: IntelConfig;
   earthquake?: EarthquakeConfig;
+  weather?: WeatherConfig;
   layout?: LayoutConfig;
 }
 
