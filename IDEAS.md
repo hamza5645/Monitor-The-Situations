@@ -18,11 +18,11 @@ A collection of potential enhancements for Monitor the Situations.
 
 ## UX Enhancements
 
-- [ ] **Sound Alerts** - Optional audio beep when DEFCON changes or breaking news arrives
-- [ ] **Keyboard Shortcuts** - Press 1-4 to maximize a panel, Esc to exit
-- [ ] **Full-screen Panel** - Double-click a panel to expand it to 100%
-- [ ] **Notification API** - Browser push notifications for critical alerts
-- [ ] **CRT Effect Toggle** - Heavier scanlines + screen flicker for extra aesthetic
+- [.] **Sound Alerts** - Optional audio beep when DEFCON changes or breaking news arrives
+- [.] **Keyboard Shortcuts** - Press 1-4 to maximize a panel, Esc to exit
+- [.] **Full-screen Panel** - Double-click a panel to expand it to 100%
+- [.] **Notification API** - Browser push notifications for critical alerts
+- [.] **CRT Effect Toggle** - Heavier scanlines + screen flicker for extra aesthetic
 
 ---
 
@@ -31,8 +31,8 @@ A collection of potential enhancements for Monitor the Situations.
 - [ ] **PWA Support** - Add manifest so users can "install" as an app
 - [ ] **WebSocket/SSE** - True real-time for news instead of polling
 - [ ] **Custom Feeds** - Let users add their own RSS or Twitter accounts
-- [ ] **Shareable Layouts** - Export/import panel configs via URL params
-- [ ] **Offline Mode** - Cache last known data for when network drops
+- [.] **Shareable Layouts** - Export/import panel configs via URL params
+- [.] **Offline Mode** - Cache last known data for when network drops
 
 ---
 
