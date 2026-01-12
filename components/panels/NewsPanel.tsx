@@ -10,6 +10,21 @@ interface NewsItem {
   publishedAt: string;
 }
 
+function formatTimeAgo(dateString: string): string {
+  const now = new Date();
+  const published = new Date(dateString);
+  const diffMs = now.getTime() - published.getTime();
+  const diffSeconds = Math.floor(diffMs / 1000);
+
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
 export default function NewsPanel() {
   const { activeSituation } = useSituation();
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -107,7 +122,7 @@ export default function NewsPanel() {
             </div>
             <div className="flex justify-between text-[10px] text-gray-500">
               <span>{item.source}</span>
-              <span>{new Date(item.publishedAt).toLocaleTimeString()}</span>
+              <span>{formatTimeAgo(item.publishedAt)}</span>
             </div>
           </a>
         ))}
