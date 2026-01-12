@@ -5,6 +5,7 @@ import NewsPanel from "@/components/panels/NewsPanel";
 import EarthquakePanel from "@/components/panels/EarthquakePanel";
 import CyberThreatPanel from "@/components/panels/CyberThreatPanel";
 import WeatherAlertsPanel from "@/components/panels/WeatherAlertsPanel";
+import FearGreedPanel from "@/components/panels/FearGreedPanel";
 
 export interface PanelConfig {
   id: string;
@@ -36,6 +37,13 @@ export const PANEL_REGISTRY: PanelConfig[] = [
     description: "Live stock prices and market indicators",
     category: "data",
     component: StocksPanel,
+  },
+  {
+    id: "fear-greed",
+    title: "Fear & Greed",
+    description: "Crypto Fear & Greed Index showing market sentiment",
+    category: "data",
+    component: FearGreedPanel,
   },
   {
     id: "news",
