@@ -24,10 +24,9 @@ export default function FlightPanel() {
         <iframe
           src={adsbUrl}
           title="ADS-B Exchange Flight Radar"
-          allow="fullscreen"
+          allow="fullscreen; storage-access"
           loading="lazy"
-          sandbox="allow-scripts allow-same-origin allow-popups"
-          referrerPolicy="no-referrer"
+          referrerPolicy="origin"
         />
       </div>
       <div className="bg-black/50 text-[10px] text-gray-500 px-2 py-1 text-center">
