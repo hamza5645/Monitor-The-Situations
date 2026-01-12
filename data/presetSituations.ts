@@ -22,6 +22,15 @@ export const DEFAULT_SITUATION: SituationConfig = {
       ],
     },
     {
+      title: "Commodities",
+      symbols: [
+        { symbol: "GC=F", name: "Gold" },
+        { symbol: "SI=F", name: "Silver" },
+        { symbol: "CL=F", name: "Crude Oil" },
+        { symbol: "NG=F", name: "Natural Gas" },
+      ],
+    },
+    {
       title: "Defense",
       symbols: [
         { symbol: "LMT", name: "Lockheed Martin" },

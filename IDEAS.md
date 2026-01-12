@@ -10,8 +10,8 @@ A collection of potential enhancements for Monitor the Situations.
 - [.] **Vessel Tracker** - MarineTraffic or VesselFinder embed (like flight radar but for ships)
 - [x] **Cyber Threat Map** - Kaspersky/Fortinet live attack visualization maps
 - [x] **Weather Alerts** - NOAA severe weather warnings
-- [x] **VIX Fear and Gread index Gauge** - Visual meter showing market volatility
-- [ ] **Gold/Oil/Crypto** - Expand stocks panel with commodities
+- [x] **VIX Fear Gauge** - Visual meter showing market volatility
+- [x] **Gold/Oil/Crypto** - Expand stocks panel with commodities (Added Commodities group: Gold, Silver, Crude Oil, Natural Gas)
 - [ ] **World Clock** - Key time zones (DC, Moscow, Beijing, Jerusalem, Kyiv)
 
 ---
