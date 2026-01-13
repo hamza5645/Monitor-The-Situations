@@ -29,8 +29,8 @@ A collection of potential enhancements for Monitor the Situations.
 ## Technical Upgrades
 
 - [x] **PWA Support** - Add manifest so users can "install" as an app
-- [ ] **WebSocket/SSE** - True real-time for news instead of polling
-- [ ] **Custom Feeds** - Let users add their own RSS or Twitter accounts
+- [.] **WebSocket/SSE** - True real-time for news instead of polling
+- [x] **Custom Feeds** - Let users add their own RSS or Twitter accounts
 - [.] **Shareable Layouts** - Export/import panel configs via URL params
 - [.] **Offline Mode** - Cache last known data for when network drops
 

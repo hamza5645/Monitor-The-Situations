@@ -7,6 +7,7 @@ import CyberThreatPanel from "@/components/panels/CyberThreatPanel";
 import WeatherAlertsPanel from "@/components/panels/WeatherAlertsPanel";
 import FearGreedPanel from "@/components/panels/FearGreedPanel";
 import WorldClockPanel from "@/components/panels/WorldClockPanel";
+import CustomFeedsPanel from "@/components/panels/CustomFeedsPanel";
 
 export interface PanelConfig {
   id: string;
@@ -80,6 +81,13 @@ export const PANEL_REGISTRY: PanelConfig[] = [
     description: "Key geopolitical time zones",
     category: "monitor",
     component: WorldClockPanel,
+  },
+  {
+    id: "custom-feeds",
+    title: "Custom Feeds",
+    description: "Your personal RSS feed aggregator",
+    category: "data",
+    component: CustomFeedsPanel,
   },
 ];
 
