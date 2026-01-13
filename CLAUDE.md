@@ -38,10 +38,10 @@ GitHub Actions automatically deploys to Cloudflare Workers on every push to `mai
 ### Key Directories
 
 - `app/` - Next.js App Router pages and API routes
-- `app/api/` - Backend API routes (defcon, stocks, news, earthquake, cyber-threats, tweets)
-- `components/` - React components (Dashboard, Header, LoadingScreen, etc.)
-- `components/panels/` - Individual dashboard panels (Flight, Stocks, News, Earthquake, CyberThreat, Twitter)
-- `hooks/` - Custom React hooks (useMediaQuery, useLocalStorage)
+- `app/api/` - Backend API routes (defcon, stocks, news, earthquake, cyber-threats, tweets, fear-greed, weather-alerts)
+- `components/` - React components (Dashboard, Header, LoadingScreen, WidgetSelector, etc.)
+- `components/panels/` - Individual dashboard panels (Flight, Stocks, News, Earthquake, CyberThreat, Twitter, FearGreed, WeatherAlerts, WorldClock, SingleFeed)
+- `hooks/` - Custom React hooks (useMediaQuery, useLocalStorage, useCustomFeeds)
 
 ### Key Patterns
 
@@ -74,4 +74,7 @@ The Dashboard uses CSS Grid with a "crosshair" resize pattern:
 | DEFCON | /api/defcon | defconlevel.com, VIX fallback |
 | Earthquakes | /api/earthquake | USGS earthquake feed |
 | Cyber Threats | /api/cyber-threats | Threat intelligence sources |
-| Intel | - | X/Twitter links (no API) |
+| Fear & Greed | /api/fear-greed | CNN Fear & Greed Index |
+| Weather Alerts | /api/weather-alerts | NWS alerts API |
+| World Clock | - | Client-side time zones |
+| Custom Feeds | - | User-configured RSS feeds via SingleFeedPanel |
