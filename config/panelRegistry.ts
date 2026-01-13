@@ -7,7 +7,6 @@ import CyberThreatPanel from "@/components/panels/CyberThreatPanel";
 import WeatherAlertsPanel from "@/components/panels/WeatherAlertsPanel";
 import FearGreedPanel from "@/components/panels/FearGreedPanel";
 import WorldClockPanel from "@/components/panels/WorldClockPanel";
-import CustomFeedsPanel from "@/components/panels/CustomFeedsPanel";
 
 export interface PanelConfig {
   id: string;
@@ -82,14 +81,22 @@ export const PANEL_REGISTRY: PanelConfig[] = [
     category: "monitor",
     component: WorldClockPanel,
   },
-  {
-    id: "custom-feeds",
-    title: "Custom Feeds",
-    description: "Your personal RSS feed aggregator",
-    category: "data",
-    component: CustomFeedsPanel,
-  },
 ];
+
+// Custom feed panel helpers
+export const CUSTOM_FEED_PREFIX = "custom-feed-";
+
+export function isCustomFeedPanelId(panelId: string): boolean {
+  return panelId.startsWith(CUSTOM_FEED_PREFIX);
+}
+
+export function getCustomFeedId(panelId: string): string {
+  return panelId.replace(CUSTOM_FEED_PREFIX, "");
+}
+
+export function createCustomFeedPanelId(feedId: string): string {
+  return `${CUSTOM_FEED_PREFIX}${feedId}`;
+}
 
 // Helper functions
 export function getPanelById(id: string): PanelConfig | undefined {

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
 import { useSituation } from "@/context/SituationContext";
 import { DEFAULT_LAYOUT } from "@/types/situation";
-import { getPanelById, type PanelConfig } from "@/config/panelRegistry";
+import { getPanelById, isCustomFeedPanelId, getCustomFeedId } from "@/config/panelRegistry";
+import SingleFeedPanel from "./panels/SingleFeedPanel";
 import {
   calculateGridDimensions,
   shouldShowCrosshairResize,
@@ -253,11 +254,8 @@ export default function Dashboard() {
     setIsEditing(false);
   }, [activeLayout]);
 
-  // Filter ordered panels to only visible ones
-  const orderedVisiblePanels = panelOrder
-    .filter((id) => visiblePanels.includes(id))
-    .map((id) => getPanelById(id))
-    .filter((p): p is PanelConfig => p !== undefined);
+  // Filter ordered panels to only visible ones (keep IDs to handle custom feeds)
+  const orderedVisiblePanelIds = panelOrder.filter((id) => visiblePanels.includes(id));
 
   if (!mounted) {
     return (
@@ -360,19 +358,24 @@ export default function Dashboard() {
           gridTemplateRows: gridDimensions.templateRows,
         }}
       >
-        {orderedVisiblePanels.map((panel) => {
-          const Component = panel.component;
-          const isDragging = draggedPanel === panel.id;
-          const isDragOver = dragOverPanel === panel.id;
+        {orderedVisiblePanelIds.map((panelId) => {
+          const isCustomFeed = isCustomFeedPanelId(panelId);
+          const panel = isCustomFeed ? null : getPanelById(panelId);
+
+          // Skip if it's not a custom feed and panel config not found
+          if (!isCustomFeed && !panel) return null;
+
+          const isDragging = draggedPanel === panelId;
+          const isDragOver = dragOverPanel === panelId;
 
           return (
             <div
-              key={panel.id}
+              key={panelId}
               draggable={isEditing}
-              onDragStart={(e) => handleDragStart(e, panel.id)}
-              onDragOver={(e) => handleDragOver(e, panel.id)}
+              onDragStart={(e) => handleDragStart(e, panelId)}
+              onDragOver={(e) => handleDragOver(e, panelId)}
               onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, panel.id)}
+              onDrop={(e) => handleDrop(e, panelId)}
               onDragEnd={handleDragEnd}
               className={`relative transition-all duration-200 panel-wrapper min-w-0 min-h-0 ${
                 isEditing ? "cursor-move editing" : ""
@@ -389,7 +392,11 @@ export default function Dashboard() {
                 </div>
               )}
               <div className={`h-full w-full overflow-hidden ${isEditing ? "pointer-events-none pt-7" : ""}`}>
-                <Component />
+                {isCustomFeed ? (
+                  <SingleFeedPanel feedId={getCustomFeedId(panelId)} />
+                ) : (
+                  panel && <panel.component />
+                )}
               </div>
             </div>
           );

@@ -66,11 +66,19 @@ export function useCustomFeeds() {
     }));
   }, [state.feeds]);
 
+  const getFeedById = useCallback(
+    (id: string): CustomFeed | undefined => {
+      return state.feeds.find((f) => f.id === id);
+    },
+    [state.feeds]
+  );
+
   return {
     feeds: state.feeds,
     feedsForApi,
     addFeed,
     removeFeed,
+    getFeedById,
     hasFeeds: state.feeds.length > 0,
   };
 }
