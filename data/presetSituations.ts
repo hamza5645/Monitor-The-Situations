@@ -58,11 +58,10 @@ export const DEFAULT_SITUATION: SituationConfig = {
     feeds: [
       // Major Wire Services
       { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
-      { url: "https://feeds.reuters.com/reuters/topNews", source: "Reuters" },
-      { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters World" },
+      { url: "https://www.theguardian.com/world/rss", source: "The Guardian" },
+      { url: "https://feeds.npr.org/1004/rss.xml", source: "NPR World" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", source: "NY Times" },
       { url: "https://feeds.washingtonpost.com/rss/world", source: "Washington Post" },
-      { url: "https://www.theguardian.com/world/rss", source: "The Guardian" },
       // TV Networks
       { url: "https://feeds.nbcnews.com/nbcnews/public/world", source: "NBC News" },
       { url: "https://feeds.cbsnews.com/CBSNewsWorld?format=xml", source: "CBS News" },
@@ -157,12 +156,11 @@ export const VENEZUELA_SITUATION: SituationConfig = {
       { url: "https://feeds.bbci.co.uk/news/world/latin_america/rss.xml", source: "BBC Latin America" },
       { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
       // Wire Services
-      { url: "https://feeds.reuters.com/reuters/topNews", source: "Reuters" },
-      { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters World" },
+      { url: "https://www.theguardian.com/world/americas/rss", source: "Guardian Americas" },
+      { url: "https://feeds.npr.org/1004/rss.xml", source: "NPR World" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/Americas.xml", source: "NY Times Americas" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", source: "NY Times World" },
       { url: "https://feeds.washingtonpost.com/rss/world", source: "Washington Post" },
-      { url: "https://www.theguardian.com/world/americas/rss", source: "Guardian Americas" },
       // TV Networks
       { url: "https://feeds.nbcnews.com/nbcnews/public/world", source: "NBC News" },
       { url: "https://abcnews.go.com/abcnews/internationalheadlines", source: "ABC News" },
@@ -258,12 +256,11 @@ export const GAZA_SITUATION: SituationConfig = {
       { url: "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", source: "BBC Middle East" },
       { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
       // Wire Services
-      { url: "https://feeds.reuters.com/reuters/topNews", source: "Reuters" },
-      { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters World" },
+      { url: "https://www.theguardian.com/world/middleeast/rss", source: "Guardian Middle East" },
+      { url: "https://feeds.npr.org/1004/rss.xml", source: "NPR World" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/MiddleEast.xml", source: "NY Times Middle East" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", source: "NY Times World" },
       { url: "https://feeds.washingtonpost.com/rss/world", source: "Washington Post" },
-      { url: "https://www.theguardian.com/world/middleeast/rss", source: "Guardian Middle East" },
       // TV Networks
       { url: "https://feeds.nbcnews.com/nbcnews/public/world", source: "NBC News" },
       { url: "https://feeds.cbsnews.com/CBSNewsWorld?format=xml", source: "CBS News" },
@@ -357,14 +354,13 @@ export const GREENLAND_SITUATION: SituationConfig = {
       { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
       { url: "https://feeds.bbci.co.uk/news/world/us_and_canada/rss.xml", source: "BBC US/Canada" },
       // Wire Services
-      { url: "https://feeds.reuters.com/reuters/topNews", source: "Reuters" },
-      { url: "https://feeds.reuters.com/reuters/worldNews", source: "Reuters World" },
+      { url: "https://www.theguardian.com/world/europe-news/rss", source: "Guardian Europe" },
+      { url: "https://feeds.npr.org/1004/rss.xml", source: "NPR World" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/Europe.xml", source: "NY Times Europe" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", source: "NY Times World" },
       { url: "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml", source: "NY Times Politics" },
       { url: "https://feeds.washingtonpost.com/rss/world", source: "Washington Post" },
       { url: "https://feeds.washingtonpost.com/rss/politics", source: "WaPo Politics" },
-      { url: "https://www.theguardian.com/world/europe-news/rss", source: "Guardian Europe" },
       { url: "https://www.theguardian.com/us-news/rss", source: "Guardian US" },
       // TV Networks
       { url: "https://feeds.nbcnews.com/nbcnews/public/world", source: "NBC News" },

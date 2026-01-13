@@ -10,7 +10,7 @@ Monitor the Situations is a web-based dashboard that provides real-time monitori
 
 - **Flight Radar**: Live military and civilian aircraft tracking via ADS-B Exchange. Monitor flight paths, military movements, and aviation activity worldwide.
 - **Stock Markets**: Real-time stock market data including major indices (S&P 500, Dow Jones, NASDAQ), defense stocks (Lockheed Martin, Raytheon, Northrop Grumman), and cryptocurrency prices.
-- **Breaking News**: Live news ticker aggregating headlines from BBC News and Reuters for real-time news monitoring.
+- **Breaking News**: Live news ticker aggregating headlines from BBC News, The Guardian, and NPR for real-time news monitoring.
 - **Intel Sources**: Curated collection of OSINT (Open Source Intelligence) Twitter/X accounts covering geopolitics, military movements, and breaking global events.
 
 ## Use Cases

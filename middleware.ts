@@ -25,7 +25,7 @@ export function middleware() {
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https:",
     "frame-src https://globe.adsbexchange.com",
-    "connect-src 'self' https://query1.finance.yahoo.com https://www.defconlevel.com https://feeds.bbci.co.uk https://feeds.reuters.com https://rsshub.app https://xcancel.com https://nitter.poast.org https://cloudflareinsights.com",
+    "connect-src 'self' https://query1.finance.yahoo.com https://www.defconlevel.com https://feeds.bbci.co.uk https://feeds.npr.org https://www.theguardian.com https://rsshub.app https://xcancel.com https://nitter.poast.org https://cloudflareinsights.com",
   ].join('; ');
 
   response.headers.set('Content-Security-Policy', csp);

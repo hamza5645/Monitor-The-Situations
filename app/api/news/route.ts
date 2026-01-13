@@ -18,8 +18,8 @@ const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
     source: "BBC World",
   },
   {
-    url: "https://feeds.reuters.com/reuters/topNews",
-    source: "Reuters",
+    url: "https://www.theguardian.com/world/rss",
+    source: "The Guardian",
   },
 ];
 

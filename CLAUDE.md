@@ -70,7 +70,7 @@ The Dashboard uses CSS Grid with a "crosshair" resize pattern:
 |-------|-----------|--------|
 | Flight Radar | - | ADS-B Exchange iframe embed |
 | Stocks | /api/stocks | Yahoo Finance (unofficial) |
-| News | /api/news | BBC/Reuters/NYT RSS feeds |
+| News | /api/news | BBC/Guardian/NPR/NYT RSS feeds |
 | DEFCON | /api/defcon | defconlevel.com, VIX fallback |
 | Earthquakes | /api/earthquake | USGS earthquake feed |
 | Cyber Threats | /api/cyber-threats | Threat intelligence sources |
