@@ -38,9 +38,9 @@ A collection of potential enhancements for Monitor the Situations.
 
 ## Quick Wins
 
-- [ ] **Fix Reuters RSS** - Currently failing with ENOTFOUND, switch to working feed or remove
-- [ ] **Stock Sparklines** - Add intraday trend mini-charts
-- [ ] **Last Major Event Banner** - Scrolling banner at top with latest critical update
+- [x] **Fix Reuters RSS** - Currently failing with ENOTFOUND, switch to working feed or remove
+- [.] **Stock Sparklines** - Add intraday trend mini-charts
+- [.] **Last Major Event Banner** - Scrolling banner at top with latest critical update
 
 ---
 
