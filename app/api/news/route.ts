@@ -51,6 +51,13 @@ function parseRSSItem(item: string, source: string): NewsArticle | null {
     const title = decodeHtmlEntities(titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, ''));
     const url = linkMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '');
 
+    // Filter out items where title matches the source name (likely RSS channel metadata)
+    const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normalizedSource = source.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (normalizedSource.includes(normalizedTitle) || normalizedTitle === normalizedSource) {
+      return null;
+    }
+
     return {
       title,
       source,
