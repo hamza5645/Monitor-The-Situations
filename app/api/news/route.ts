@@ -58,11 +58,14 @@ function parseRSSItem(item: string, source: string): NewsArticle | null {
       return null;
     }
 
+    // Use a fixed old date for items without pubDate so they sort to the bottom
+    // instead of getting fresh "now" timestamps that push them to the top
+    const fallbackDate = "2000-01-01T00:00:00.000Z";
     return {
       title,
       source,
       url,
-      publishedAt: pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : new Date().toISOString(),
+      publishedAt: pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : fallbackDate,
     };
   } catch {
     return null;
@@ -158,9 +161,13 @@ export async function GET(request: Request) {
     );
   }
 
-  allArticles.sort((a, b) =>
-    new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-  );
+  // Sort by publishedAt, with URL as tiebreaker for stable ordering
+  allArticles.sort((a, b) => {
+    const timeDiff = new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    // Use URL as stable tiebreaker when timestamps are equal
+    return a.url.localeCompare(b.url);
+  });
 
   if (allArticles.length === 0) {
     allArticles = FALLBACK_HEADLINES;

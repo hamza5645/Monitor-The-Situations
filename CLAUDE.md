@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Important Rules
 
-- **NEVER commit, push, or deploy without explicit user permission.** Always wait for the user to explicitly ask before running git commit, git push, or any deploy commands.
+- **NEVER interact with git or deploy without explicit user permission.** This includes: git add, git commit, git push, git reset, git revert, git checkout, git merge, git rebase, or any deploy commands (cf:deploy, wrangler, etc.). Always wait for the user to explicitly ask before running ANY git or deployment commands.
 
 ## Project Overview
 
