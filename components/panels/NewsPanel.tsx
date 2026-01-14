@@ -44,15 +44,33 @@ export default function NewsPanel() {
       const response = await fetch(`/api/news?${params}`, { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
-        const newArticles = data.articles || [];
-        // Only reset counter if the first headline actually changed
+        const newArticles: NewsItem[] = data.articles || [];
+        // Merge with existing articles, preserving original publishedAt timestamps
+        // This prevents the "X seconds ago" from resetting for the same articles
         setNews((prevNews) => {
-          const firstNewTitle = newArticles[0]?.title;
+          // Create a map of existing articles by URL for quick lookup
+          const existingByUrl = new Map<string, NewsItem>();
+          for (const article of prevNews) {
+            existingByUrl.set(article.url, article);
+          }
+
+          // Merge: use existing publishedAt if article already exists
+          const mergedArticles = newArticles.map((newArticle) => {
+            const existing = existingByUrl.get(newArticle.url);
+            if (existing) {
+              // Preserve the original timestamp for known articles
+              return { ...newArticle, publishedAt: existing.publishedAt };
+            }
+            return newArticle;
+          });
+
+          // Only reset counter if the first headline actually changed
+          const firstNewTitle = mergedArticles[0]?.title;
           const firstOldTitle = prevNews[0]?.title;
           if (firstNewTitle !== firstOldTitle) {
             setSecondsAgo(0);
           }
-          return newArticles;
+          return mergedArticles;
         });
       }
     } catch (error) {
@@ -67,6 +85,8 @@ export default function NewsPanel() {
     if (situationIdRef.current !== activeSituation.id) {
       situationIdRef.current = activeSituation.id;
       setLoading(true);
+      // Clear news to avoid preserving timestamps from a different situation
+      setNews([]);
     }
     fetchNews();
     // Refresh every 20 seconds for real-time breaking news updates
