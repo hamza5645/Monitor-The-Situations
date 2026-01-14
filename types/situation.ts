@@ -90,8 +90,8 @@ export interface LayoutConfig {
 }
 
 export const DEFAULT_LAYOUT: LayoutConfig = {
-  order: ["twitter", "flight", "stocks", "news"],
-  visiblePanels: ["twitter", "flight", "stocks", "news"],
+  order: ["world-clock", "flight", "stocks", "news"],
+  visiblePanels: ["world-clock", "flight", "stocks", "news"],
   splitXs: [50],
   splitYs: [50],
 };
