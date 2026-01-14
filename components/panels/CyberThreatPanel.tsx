@@ -315,7 +315,9 @@ export default function CyberThreatPanel() {
         <span>
           {dataSource === "otx"
             ? "Data: AlienVault OTX"
-            : "Data: Simulated"}
+            : dataSource === "loading"
+            ? "Loading..."
+            : "Awaiting Data"}
         </span>
         <span>Cyber Attack Visualization</span>
       </div>

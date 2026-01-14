@@ -46,19 +46,6 @@ const COUNTRY_COORDS: { [key: string]: { lat: number; lng: number; name: string 
   IT: { lat: 41.8719, lng: 12.5674, name: "Italy" },
 };
 
-const THREAT_TYPES = [
-  "Botnet C2",
-  "Ransomware",
-  "Malware",
-  "Phishing",
-  "Trojan",
-  "Stealer",
-  "RAT",
-  "Loader",
-  "Banking Trojan",
-  "Cryptominer",
-];
-
 // Attack source/target probabilities based on real-world data
 const ATTACK_SOURCES = ["CN", "RU", "US", "KP", "IR", "BR", "IN", "VN", "ID", "NG"];
 const ATTACK_TARGETS = ["US", "DE", "GB", "FR", "JP", "KR", "AU", "NL", "CA", "SG", "IL"];
@@ -141,8 +128,8 @@ async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }
   const apiKey = process.env.OTX_API_KEY;
 
   if (!apiKey) {
-    console.log("OTX_API_KEY not configured, using simulated data");
-    return { threats: generateSimulatedThreats(15), source: "simulated" };
+    console.log("OTX_API_KEY not configured");
+    return { threats: [], source: "none" };
   }
 
   try {
@@ -167,8 +154,8 @@ async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }
     const data: OTXResponse = await response.json();
 
     if (!data.results || data.results.length === 0) {
-      console.log("No OTX pulses found, using simulated data");
-      return { threats: generateSimulatedThreats(15), source: "simulated" };
+      console.log("No OTX pulses found");
+      return { threats: [], source: "none" };
     }
 
     const now = Date.now();
@@ -250,51 +237,11 @@ async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }
       });
     }
 
-    if (threats.length > 0) {
-      return { threats, source: "otx" };
-    }
-
-    return { threats: generateSimulatedThreats(15), source: "simulated" };
+    return { threats, source: threats.length > 0 ? "otx" : "none" };
   } catch (error) {
     console.error("OTX fetch failed:", error);
-    return { threats: generateSimulatedThreats(15), source: "simulated" };
+    return { threats: [], source: "none" };
   }
-}
-
-// Generate simulated threat data as fallback
-function generateSimulatedThreats(count: number): ThreatData[] {
-  const threats: ThreatData[] = [];
-  const now = Date.now();
-
-  for (let i = 0; i < count; i++) {
-    const srcCode = ATTACK_SOURCES[Math.floor(Math.random() * ATTACK_SOURCES.length)];
-    let dstCode = ATTACK_TARGETS[Math.floor(Math.random() * ATTACK_TARGETS.length)];
-
-    while (srcCode === dstCode) {
-      dstCode = ATTACK_TARGETS[Math.floor(Math.random() * ATTACK_TARGETS.length)];
-    }
-
-    const src = COUNTRY_COORDS[srcCode];
-    const dst = COUNTRY_COORDS[dstCode];
-
-    if (!src || !dst) continue;
-
-    const jitter = () => (Math.random() - 0.5) * 5;
-
-    threats.push({
-      id: `sim-${now}-${i}`,
-      srcLat: src.lat + jitter(),
-      srcLng: src.lng + jitter(),
-      dstLat: dst.lat + jitter(),
-      dstLng: dst.lng + jitter(),
-      srcCountry: src.name,
-      dstCountry: dst.name,
-      threatType: THREAT_TYPES[Math.floor(Math.random() * THREAT_TYPES.length)],
-      timestamp: now - Math.floor(Math.random() * 60000),
-    });
-  }
-
-  return threats;
 }
 
 export async function GET() {
