@@ -44,8 +44,16 @@ export default function NewsPanel() {
       const response = await fetch(`/api/news?${params}`, { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
-        setNews(data.articles || []);
-        setSecondsAgo(0);
+        const newArticles = data.articles || [];
+        // Only reset counter if the first headline actually changed
+        setNews((prevNews) => {
+          const firstNewTitle = newArticles[0]?.title;
+          const firstOldTitle = prevNews[0]?.title;
+          if (firstNewTitle !== firstOldTitle) {
+            setSecondsAgo(0);
+          }
+          return newArticles;
+        });
       }
     } catch (error) {
       console.error("Failed to fetch news:", error);
