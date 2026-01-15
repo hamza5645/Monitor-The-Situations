@@ -205,6 +205,8 @@ async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> 
       headers: {
         "X-OTX-API-KEY": apiKey,
         "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
+        "Accept": "application/json",
       },
       signal: AbortSignal.timeout(8000),
     }
@@ -255,6 +257,10 @@ async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> 
 
 async function fetchOTXNocThreats(): Promise<ThreatData[]> {
   const response = await fetch("https://otx.alienvault.com/otxapi/noc/active_by_roles", {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
+      "Accept": "application/json",
+    },
     signal: AbortSignal.timeout(8000),
   });
 
