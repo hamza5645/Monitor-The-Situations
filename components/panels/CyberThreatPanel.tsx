@@ -166,6 +166,7 @@ export default function CyberThreatPanel() {
 
       const src = latLngToCanvas(threat.srcLat, threat.srcLng, width, height);
       const dst = latLngToCanvas(threat.dstLat, threat.dstLng, width, height);
+      const sameLocation = Math.abs(src.x - dst.x) < 0.5 && Math.abs(src.y - dst.y) < 0.5;
 
       // Animation progress (0 to 1)
       const progress = Math.min(age / 3000, 1); // 3 second animation
@@ -182,49 +183,51 @@ export default function CyberThreatPanel() {
       const currentY =
         (1 - t) * (1 - t) * src.y + 2 * (1 - t) * t * midY + t * t * dst.y;
 
-      // Draw the arc trail
-      ctx.strokeStyle = `rgba(255, 0, 0, ${opacity * 0.4})`;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(src.x, src.y);
-      ctx.quadraticCurveTo(midX, midY, currentX, currentY);
-      ctx.stroke();
-
-      // Draw moving dot
-      if (progress < 1) {
-        ctx.fillStyle = `rgba(255, 50, 50, ${opacity})`;
-        ctx.beginPath();
-        ctx.arc(currentX, currentY, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Glow effect
-        const gradient = ctx.createRadialGradient(
-          currentX,
-          currentY,
-          0,
-          currentX,
-          currentY,
-          8
-        );
-        gradient.addColorStop(0, `rgba(255, 0, 0, ${opacity * 0.5})`);
-        gradient.addColorStop(1, "rgba(255, 0, 0, 0)");
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(currentX, currentY, 8, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Draw impact at destination
-      if (progress >= 1) {
-        const impactAge = age - 3000;
-        const impactOpacity = Math.max(0, 1 - impactAge / 5000);
-        const impactRadius = 3 + (impactAge / 1000) * 2;
-
-        ctx.strokeStyle = `rgba(255, 100, 100, ${impactOpacity})`;
+      if (!sameLocation) {
+        // Draw the arc trail
+        ctx.strokeStyle = `rgba(255, 0, 0, ${opacity * 0.4})`;
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(dst.x, dst.y, impactRadius, 0, Math.PI * 2);
+        ctx.moveTo(src.x, src.y);
+        ctx.quadraticCurveTo(midX, midY, currentX, currentY);
         ctx.stroke();
+
+        // Draw moving dot
+        if (progress < 1) {
+          ctx.fillStyle = `rgba(255, 50, 50, ${opacity})`;
+          ctx.beginPath();
+          ctx.arc(currentX, currentY, 2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Glow effect
+          const gradient = ctx.createRadialGradient(
+            currentX,
+            currentY,
+            0,
+            currentX,
+            currentY,
+            8
+          );
+          gradient.addColorStop(0, `rgba(255, 0, 0, ${opacity * 0.5})`);
+          gradient.addColorStop(1, "rgba(255, 0, 0, 0)");
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(currentX, currentY, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw impact at destination
+        if (progress >= 1) {
+          const impactAge = age - 3000;
+          const impactOpacity = Math.max(0, 1 - impactAge / 5000);
+          const impactRadius = 3 + (impactAge / 1000) * 2;
+
+          ctx.strokeStyle = `rgba(255, 100, 100, ${impactOpacity})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(dst.x, dst.y, impactRadius, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
 
       // Source pulse
@@ -300,21 +303,25 @@ export default function CyberThreatPanel() {
         </div>
         {/* Recent attacks log */}
         <div className="absolute top-2 right-2 text-[9px] font-mono text-gray-600 bg-black/70 px-2 py-1 rounded max-h-20 overflow-hidden">
-          {threats.slice(0, 3).map((t) => (
-            <div key={t.id} className="truncate">
-              <span className="text-red-500">{t.threatType}</span>
-              <span className="text-gray-600">
-                {" "}
-                {t.srcCountry} → {t.dstCountry}
-              </span>
-            </div>
-          ))}
+          {threats.slice(0, 3).map((t) => {
+            const sameLocation = t.srcCountry === t.dstCountry;
+            return (
+              <div key={t.id} className="truncate">
+                <span className="text-red-500">{t.threatType}</span>
+                <span className="text-gray-600">
+                  {sameLocation ? ` ${t.srcCountry}` : ` ${t.srcCountry} → ${t.dstCountry}`}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="bg-black/50 text-[10px] text-gray-500 px-2 py-1 text-center flex justify-between">
         <span>
           {dataSource === "otx"
             ? "Data: AlienVault OTX"
+            : dataSource === "otx-noc"
+            ? "Data: AlienVault OTX NOC"
             : dataSource === "loading"
             ? "Loading..."
             : "Awaiting Data"}

@@ -46,9 +46,8 @@ const COUNTRY_COORDS: { [key: string]: { lat: number; lng: number; name: string 
   IT: { lat: 41.8719, lng: 12.5674, name: "Italy" },
 };
 
-// Attack source/target probabilities based on real-world data
-const ATTACK_SOURCES = ["CN", "RU", "US", "KP", "IR", "BR", "IN", "VN", "ID", "NG"];
-const ATTACK_TARGETS = ["US", "DE", "GB", "FR", "JP", "KR", "AU", "NL", "CA", "SG", "IL"];
+const MAX_OTX_THREATS = 15;
+const NOC_COUNTRY_LIMIT = 12;
 
 // OTX API response types
 interface OTXPulse {
@@ -81,10 +80,23 @@ interface OTXResponse {
   next: string | null;
 }
 
+interface OTXNocCountry {
+  country: string;
+  count: number;
+  lat: number;
+  long: number;
+  iso_code: string;
+}
+
+interface OTXNocResponse {
+  countries: OTXNocCountry[];
+}
+
 // Map country codes to our coordinate system
 function getCountryCode(countryName: string): string | null {
   const mapping: { [key: string]: string } = {
     "united states": "US",
+    "united states of america": "US",
     "usa": "US",
     "china": "CN",
     "russia": "RU",
@@ -123,123 +135,174 @@ function getCountryCode(countryName: string): string | null {
   return mapping[countryName.toLowerCase()] || null;
 }
 
+function getTargetCountryCode(targetedCountries: string[] | undefined): string | null {
+  if (!targetedCountries || targetedCountries.length === 0) return null;
+
+  for (const country of targetedCountries) {
+    const code = getCountryCode(country);
+    if (code && COUNTRY_COORDS[code]) return code;
+  }
+
+  return null;
+}
+
+function inferSourceCountryCode(attackIds: { id: string; name: string }[] | undefined): string | null {
+  if (!attackIds || attackIds.length === 0) return null;
+
+  const attackName = attackIds
+    .map((attack) => attack?.name)
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (!attackName) return null;
+
+  if (attackName.includes("china") || attackName.includes("apt1") || attackName.includes("apt10")) {
+    return "CN";
+  }
+  if (attackName.includes("russia") || attackName.includes("apt28") || attackName.includes("apt29")) {
+    return "RU";
+  }
+  if (attackName.includes("north korea") || attackName.includes("lazarus")) {
+    return "KP";
+  }
+  if (attackName.includes("iran")) {
+    return "IR";
+  }
+
+  return null;
+}
+
+function getThreatType(pulse: OTXPulse): string {
+  let threatType = "Malware";
+
+  if (pulse.malware_families && pulse.malware_families.length > 0 && pulse.malware_families[0]) {
+    threatType = pulse.malware_families[0];
+    if (threatType.length > 12) {
+      threatType = threatType.substring(0, 10) + "..";
+    }
+  } else if (pulse.tags && pulse.tags.length > 0 && pulse.tags[0]) {
+    const tag = String(pulse.tags[0]).toLowerCase();
+    if (tag.includes("ransomware")) threatType = "Ransomware";
+    else if (tag.includes("phishing")) threatType = "Phishing";
+    else if (tag.includes("botnet")) threatType = "Botnet";
+    else if (tag.includes("trojan")) threatType = "Trojan";
+    else if (tag.includes("apt")) threatType = "APT";
+    else if (tag.includes("rat")) threatType = "RAT";
+    else if (tag.includes("malware")) threatType = "Malware";
+    else if (tag.includes("c2")) threatType = "C2 Server";
+    else threatType = pulse.tags[0].length > 12 ? pulse.tags[0].substring(0, 10) + ".." : pulse.tags[0];
+  }
+
+  return threatType;
+}
+
+async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> {
+  // Fetch recent subscribed pulses (threat intelligence feeds)
+  const response = await fetch(
+    "https://otx.alienvault.com/api/v1/pulses/subscribed?limit=10&page=1",
+    {
+      headers: {
+        "X-OTX-API-KEY": apiKey,
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(8000),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`OTX API error ${response.status}:`, errorText);
+    throw new Error(`OTX API returned ${response.status}`);
+  }
+
+  const data: OTXResponse = await response.json();
+
+  if (!data.results || data.results.length === 0) {
+    return [];
+  }
+
+  const now = Date.now();
+  const threats: ThreatData[] = [];
+
+  // Process each pulse and create threat visualizations
+  for (const pulse of data.results.slice(0, MAX_OTX_THREATS)) {
+    const srcCode = inferSourceCountryCode(pulse.attack_ids);
+    const dstCode = getTargetCountryCode(pulse.targeted_countries);
+
+    if (!srcCode || !dstCode) continue;
+
+    const src = COUNTRY_COORDS[srcCode];
+    const dst = COUNTRY_COORDS[dstCode];
+
+    if (!src || !dst) continue;
+
+    threats.push({
+      id: `otx-${pulse.id}-${threats.length}`,
+      srcLat: src.lat,
+      srcLng: src.lng,
+      dstLat: dst.lat,
+      dstLng: dst.lng,
+      srcCountry: src.name,
+      dstCountry: dst.name,
+      threatType: getThreatType(pulse),
+      timestamp: now - threats.length * 1000,
+    });
+  }
+
+  return threats;
+}
+
+async function fetchOTXNocThreats(): Promise<ThreatData[]> {
+  const response = await fetch("https://otx.alienvault.com/otxapi/noc/active_by_roles", {
+    signal: AbortSignal.timeout(8000),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`OTX NOC error ${response.status}:`, errorText);
+    throw new Error(`OTX NOC returned ${response.status}`);
+  }
+
+  const data: OTXNocResponse = await response.json();
+  const now = Date.now();
+
+  return (data.countries || []).slice(0, NOC_COUNTRY_LIMIT).map((country, index) => ({
+    id: `otx-noc-${country.iso_code || index}-${now}`,
+    srcLat: country.lat,
+    srcLng: country.long,
+    dstLat: country.lat,
+    dstLng: country.long,
+    srcCountry: country.country,
+    dstCountry: country.country,
+    threatType: "OTX Activity",
+    timestamp: now - index * 1000,
+  }));
+}
+
 // Fetch real threat data from AlienVault OTX
 async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }> {
   const apiKey = process.env.OTX_API_KEY;
 
-  if (!apiKey) {
-    console.log("OTX_API_KEY not configured");
-    return { threats: [], source: "none" };
+  if (apiKey) {
+    try {
+      const threats = await fetchOTXSubscribedThreats(apiKey);
+      if (threats.length > 0) {
+        return { threats, source: "otx" };
+      }
+      console.log("OTX API returned no usable threats, falling back to public feed");
+    } catch (error) {
+      console.error("OTX fetch failed:", error);
+    }
+  } else {
+    console.log("OTX_API_KEY not configured, using public OTX NOC feed");
   }
 
   try {
-    // Fetch recent subscribed pulses (threat intelligence feeds)
-    const response = await fetch(
-      "https://otx.alienvault.com/api/v1/pulses/subscribed?limit=10&page=1",
-      {
-        headers: {
-          "X-OTX-API-KEY": apiKey,
-          "Content-Type": "application/json",
-        },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`OTX API error ${response.status}:`, errorText);
-      throw new Error(`OTX API returned ${response.status}`);
-    }
-
-    const data: OTXResponse = await response.json();
-
-    if (!data.results || data.results.length === 0) {
-      console.log("No OTX pulses found");
-      return { threats: [], source: "none" };
-    }
-
-    const now = Date.now();
-    const threats: ThreatData[] = [];
-
-    // Process each pulse and create threat visualizations
-    for (const pulse of data.results.slice(0, 15)) {
-      // Determine threat type from pulse data
-      let threatType = "Malware";
-      if (pulse.malware_families && pulse.malware_families.length > 0 && pulse.malware_families[0]) {
-        threatType = pulse.malware_families[0];
-        if (threatType.length > 12) {
-          threatType = threatType.substring(0, 10) + "..";
-        }
-      } else if (pulse.tags && pulse.tags.length > 0 && pulse.tags[0]) {
-        const tag = String(pulse.tags[0]).toLowerCase();
-        if (tag.includes("ransomware")) threatType = "Ransomware";
-        else if (tag.includes("phishing")) threatType = "Phishing";
-        else if (tag.includes("botnet")) threatType = "Botnet";
-        else if (tag.includes("trojan")) threatType = "Trojan";
-        else if (tag.includes("apt")) threatType = "APT";
-        else if (tag.includes("rat")) threatType = "RAT";
-        else if (tag.includes("malware")) threatType = "Malware";
-        else if (tag.includes("c2")) threatType = "C2 Server";
-        else threatType = pulse.tags[0].length > 12 ? pulse.tags[0].substring(0, 10) + ".." : pulse.tags[0];
-      }
-
-      // Determine source country from pulse metadata or default
-      let srcCode = ATTACK_SOURCES[Math.floor(Math.random() * ATTACK_SOURCES.length)];
-
-      // Try to extract country from pulse data
-      if (pulse.attack_ids && pulse.attack_ids.length > 0 && pulse.attack_ids[0]?.name) {
-        // Some APT groups are associated with countries
-        const attackName = pulse.attack_ids[0].name.toLowerCase();
-        if (attackName.includes("china") || attackName.includes("apt1") || attackName.includes("apt10")) {
-          srcCode = "CN";
-        } else if (attackName.includes("russia") || attackName.includes("apt28") || attackName.includes("apt29")) {
-          srcCode = "RU";
-        } else if (attackName.includes("north korea") || attackName.includes("lazarus")) {
-          srcCode = "KP";
-        } else if (attackName.includes("iran")) {
-          srcCode = "IR";
-        }
-      }
-
-      // Determine target countries
-      let dstCode = ATTACK_TARGETS[Math.floor(Math.random() * ATTACK_TARGETS.length)];
-
-      if (pulse.targeted_countries && pulse.targeted_countries.length > 0) {
-        const mappedCode = getCountryCode(pulse.targeted_countries[0]);
-        if (mappedCode && COUNTRY_COORDS[mappedCode]) {
-          dstCode = mappedCode;
-        }
-      }
-
-      // Avoid same source and destination
-      while (srcCode === dstCode) {
-        dstCode = ATTACK_TARGETS[Math.floor(Math.random() * ATTACK_TARGETS.length)];
-      }
-
-      const src = COUNTRY_COORDS[srcCode];
-      const dst = COUNTRY_COORDS[dstCode];
-
-      if (!src || !dst) continue;
-
-      // Add jitter to coordinates
-      const jitter = () => (Math.random() - 0.5) * 3;
-
-      threats.push({
-        id: `otx-${pulse.id}-${threats.length}`,
-        srcLat: src.lat + jitter(),
-        srcLng: src.lng + jitter(),
-        dstLat: dst.lat + jitter(),
-        dstLng: dst.lng + jitter(),
-        srcCountry: src.name,
-        dstCountry: dst.name,
-        threatType,
-        timestamp: now - Math.floor(Math.random() * 30000),
-      });
-    }
-
-    return { threats, source: threats.length > 0 ? "otx" : "none" };
+    const threats = await fetchOTXNocThreats();
+    return { threats, source: threats.length > 0 ? "otx-noc" : "none" };
   } catch (error) {
-    console.error("OTX fetch failed:", error);
+    console.error("OTX NOC fetch failed:", error);
     return { threats: [], source: "none" };
   }
 }
