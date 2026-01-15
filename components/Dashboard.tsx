@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSituation } from "@/context/SituationContext";
 import { DEFAULT_LAYOUT } from "@/types/situation";
 import { getPanelById, isCustomFeedPanelId, getCustomFeedId } from "@/config/panelRegistry";
@@ -15,14 +15,14 @@ import {
 } from "@/utils/gridCalculator";
 import WidgetSelector from "./WidgetSelector";
 
-// Hydration-safe mounted state using useSyncExternalStore
-const emptySubscribe = () => () => {};
-const getClientSnapshot = () => true;
-const getServerSnapshot = () => false;
-
 export default function Dashboard() {
-  const mounted = useSyncExternalStore(emptySubscribe, getClientSnapshot, getServerSnapshot);
+  const [mounted, setMounted] = useState(false);
   const { activeLayout, updateActiveLayout, activeSituationId } = useSituation();
+
+  // Use useEffect for reliable cross-browser hydration detection
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Local state for editing - initialized from context
   const [panelOrder, setPanelOrder] = useState<string[]>(DEFAULT_LAYOUT.order);

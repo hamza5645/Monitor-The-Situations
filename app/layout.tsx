@@ -116,7 +116,7 @@ export default function RootLayout({
         {/* Service worker registration - static content, no user input */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js')})}`
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').then(reg=>{reg.update();}).catch(()=>{})})}`
           }}
         />
       </head>

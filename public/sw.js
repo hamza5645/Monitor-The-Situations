@@ -1,11 +1,10 @@
 // Service Worker for Monitor the Situations PWA
-const CACHE_VERSION = 'mts-v1';
+const CACHE_VERSION = 'mts-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
 // Static assets to cache on install
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon-192x192.png',
@@ -48,6 +47,14 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
+
+  // Navigation requests: network-first to avoid stale HTML
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request))
+    );
+    return;
+  }
 
   // API routes: network-first with cache fallback
   if (url.pathname.startsWith('/api/')) {
