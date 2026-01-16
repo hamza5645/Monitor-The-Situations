@@ -44,6 +44,7 @@ const COUNTRY_COORDS: { [key: string]: { lat: number; lng: number; name: string 
   BD: { lat: 23.685, lng: 90.3563, name: "Bangladesh" },
   TR: { lat: 38.9637, lng: 35.2433, name: "Turkey" },
   IT: { lat: 41.8719, lng: 12.5674, name: "Italy" },
+  CO: { lat: 4.5709, lng: -74.2973, name: "Colombia" },
 };
 
 const MAX_OTX_THREATS = 15;
@@ -131,6 +132,7 @@ function getCountryCode(countryName: string): string | null {
     "bangladesh": "BD",
     "turkey": "TR",
     "italy": "IT",
+    "colombia": "CO",
   };
   return mapping[countryName.toLowerCase()] || null;
 }
@@ -146,28 +148,41 @@ function getTargetCountryCode(targetedCountries: string[] | undefined): string |
   return null;
 }
 
-function inferSourceCountryCode(attackIds: { id: string; name: string }[] | undefined): string | null {
-  if (!attackIds || attackIds.length === 0) return null;
+function inferSourceCountryCode(pulse: OTXPulse): string | null {
+  // Combine pulse name, tags, and malware families to look for actor attribution
+  const searchText = [
+    pulse.name || "",
+    ...(pulse.tags || []),
+    ...(pulse.malware_families || []),
+  ].join(" ").toLowerCase();
 
-  const attackName = attackIds
-    .map((attack) => attack?.name)
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  if (!searchText) return null;
 
-  if (!attackName) return null;
-
-  if (attackName.includes("china") || attackName.includes("apt1") || attackName.includes("apt10")) {
+  // Chinese APT groups
+  if (searchText.includes("china") || searchText.includes("apt1") || searchText.includes("apt10") ||
+      searchText.includes("apt41") || searchText.includes("winnti") || searchText.includes("mustang panda") ||
+      searchText.includes("panda")) {
     return "CN";
   }
-  if (attackName.includes("russia") || attackName.includes("apt28") || attackName.includes("apt29")) {
+  // Russian APT groups
+  if (searchText.includes("russia") || searchText.includes("apt28") || searchText.includes("apt29") ||
+      searchText.includes("turla") || searchText.includes("cozy bear") || searchText.includes("fancy bear") ||
+      searchText.includes("sandworm") || searchText.includes("ddosia")) {
     return "RU";
   }
-  if (attackName.includes("north korea") || attackName.includes("lazarus")) {
+  // North Korean APT groups
+  if (searchText.includes("north korea") || searchText.includes("lazarus") || searchText.includes("kimsuky") ||
+      searchText.includes("apt38") || searchText.includes("bluenoroff")) {
     return "KP";
   }
-  if (attackName.includes("iran")) {
+  // Iranian APT groups
+  if (searchText.includes("iran") || searchText.includes("apt33") || searchText.includes("apt34") ||
+      searchText.includes("muddywater") || searchText.includes("charming kitten")) {
     return "IR";
+  }
+  // Colombian/Latin American groups (as source for regional attacks)
+  if (searchText.includes("blindeagle") || searchText.includes("blind eagle")) {
+    return "CO";
   }
 
   return null;
@@ -232,7 +247,7 @@ async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> 
 
   // Process each pulse and create threat visualizations
   for (const pulse of data.results.slice(0, MAX_OTX_THREATS)) {
-    const srcCode = inferSourceCountryCode(pulse.attack_ids);
+    const srcCode = inferSourceCountryCode(pulse);
     const dstCode = getTargetCountryCode(pulse.targeted_countries);
 
     if (!srcCode || !dstCode) continue;
@@ -292,6 +307,39 @@ async function fetchOTXNocThreats(): Promise<ThreatData[]> {
   }));
 }
 
+// Generate fallback threat data when APIs are unavailable
+function generateFallbackThreats(): ThreatData[] {
+  const now = Date.now();
+  const threatPatterns = [
+    { src: "RU", dst: "US", type: "APT Attack" },
+    { src: "CN", dst: "US", type: "Espionage" },
+    { src: "KP", dst: "KR", type: "Lazarus" },
+    { src: "RU", dst: "UA", type: "DDoS" },
+    { src: "IR", dst: "IL", type: "Wiper" },
+    { src: "CN", dst: "JP", type: "APT10" },
+    { src: "RU", dst: "DE", type: "Turla" },
+    { src: "KP", dst: "US", type: "Ransomware" },
+    { src: "CN", dst: "AU", type: "Mustang Panda" },
+    { src: "IR", dst: "US", type: "Phishing" },
+  ];
+
+  return threatPatterns.map((pattern, index) => {
+    const src = COUNTRY_COORDS[pattern.src];
+    const dst = COUNTRY_COORDS[pattern.dst];
+    return {
+      id: `fallback-${index}-${now}`,
+      srcLat: src.lat,
+      srcLng: src.lng,
+      dstLat: dst.lat,
+      dstLng: dst.lng,
+      srcCountry: src.name,
+      dstCountry: dst.name,
+      threatType: pattern.type,
+      timestamp: now - index * 2000,
+    };
+  });
+}
+
 // Fetch real threat data from AlienVault OTX
 async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }> {
   const apiKey = process.env.OTX_API_KEY;
@@ -312,11 +360,16 @@ async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }
 
   try {
     const threats = await fetchOTXNocThreats();
-    return { threats, source: threats.length > 0 ? "otx-noc" : "none" };
+    if (threats.length > 0) {
+      return { threats, source: "otx-noc" };
+    }
   } catch (error) {
     console.error("OTX NOC fetch failed:", error);
-    return { threats: [], source: "none" };
   }
+
+  // Fallback to generated data when all APIs fail
+  console.log("All OTX sources failed, using fallback data");
+  return { threats: generateFallbackThreats(), source: "fallback" };
 }
 
 export async function GET() {
