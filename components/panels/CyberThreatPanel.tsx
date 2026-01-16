@@ -301,21 +301,23 @@ export default function CyberThreatPanel() {
         <div className="absolute bottom-2 left-2 text-[10px] font-mono text-gray-500 bg-black/70 px-2 py-1 rounded">
           <div className="text-red-500">{stats.perSecond}/s</div>
         </div>
-        {/* Recent attacks log */}
-        <div className="absolute top-2 right-2 text-[9px] font-mono text-gray-600 bg-black/70 px-2 py-1 rounded max-h-20 overflow-hidden">
+      </div>
+      {/* Recent attacks log - below map */}
+      {threats.length > 0 && (
+        <div className="bg-black/80 text-[9px] font-mono px-2 py-1 flex gap-3 overflow-x-auto">
           {threats.slice(0, 3).map((t) => {
             const sameLocation = t.srcCountry === t.dstCountry;
             return (
-              <div key={t.id} className="truncate">
+              <span key={t.id} className="whitespace-nowrap">
                 <span className="text-red-500">{t.threatType}</span>
-                <span className="text-gray-600">
+                <span className="text-gray-500">
                   {sameLocation ? ` ${t.srcCountry}` : ` ${t.srcCountry} → ${t.dstCountry}`}
                 </span>
-              </div>
+              </span>
             );
           })}
         </div>
-      </div>
+      )}
       <div className="bg-black/50 text-[10px] text-gray-500 px-2 py-1 text-center flex justify-between">
         <span>
           {dataSource === "otx"
