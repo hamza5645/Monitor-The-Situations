@@ -307,39 +307,6 @@ async function fetchOTXNocThreats(): Promise<ThreatData[]> {
   }));
 }
 
-// Generate fallback threat data when APIs are unavailable
-function generateFallbackThreats(): ThreatData[] {
-  const now = Date.now();
-  const threatPatterns = [
-    { src: "RU", dst: "US", type: "APT Attack" },
-    { src: "CN", dst: "US", type: "Espionage" },
-    { src: "KP", dst: "KR", type: "Lazarus" },
-    { src: "RU", dst: "UA", type: "DDoS" },
-    { src: "IR", dst: "IL", type: "Wiper" },
-    { src: "CN", dst: "JP", type: "APT10" },
-    { src: "RU", dst: "DE", type: "Turla" },
-    { src: "KP", dst: "US", type: "Ransomware" },
-    { src: "CN", dst: "AU", type: "Mustang Panda" },
-    { src: "IR", dst: "US", type: "Phishing" },
-  ];
-
-  return threatPatterns.map((pattern, index) => {
-    const src = COUNTRY_COORDS[pattern.src];
-    const dst = COUNTRY_COORDS[pattern.dst];
-    return {
-      id: `fallback-${index}-${now}`,
-      srcLat: src.lat,
-      srcLng: src.lng,
-      dstLat: dst.lat,
-      dstLng: dst.lng,
-      srcCountry: src.name,
-      dstCountry: dst.name,
-      threatType: pattern.type,
-      timestamp: now - index * 2000,
-    };
-  });
-}
-
 // Fetch real threat data from AlienVault OTX
 async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }> {
   const apiKey = process.env.OTX_API_KEY;
@@ -367,9 +334,8 @@ async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }
     console.error("OTX NOC fetch failed:", error);
   }
 
-  // Fallback to generated data when all APIs fail
-  console.log("All OTX sources failed, using fallback data");
-  return { threats: generateFallbackThreats(), source: "fallback" };
+  // Return empty when all sources fail - panel will show "Awaiting Data"
+  return { threats: [], source: "none" };
 }
 
 export async function GET() {
