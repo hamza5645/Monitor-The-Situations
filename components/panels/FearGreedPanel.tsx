@@ -206,7 +206,7 @@ export default function FearGreedPanel() {
     <div className="panel h-full flex flex-col">
       <div className="panel-header">
         <span className="flex items-center gap-2">
-          CRYPTO FEAR & GREED
+          MARKET FEAR & GREED
           <span className="live-indicator" />
         </span>
         {data && (

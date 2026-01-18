@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 
 export type SentimentLevel = "Extreme Fear" | "Fear" | "Neutral" | "Greed" | "Extreme Greed";
 
+type CnnRating = "extreme fear" | "fear" | "neutral" | "greed" | "extreme greed";
+
+const CNN_FEAR_GREED_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata";
+
 export interface FearGreedData {
   value: number;
   level: SentimentLevel;
@@ -26,32 +30,50 @@ function getSentimentLevel(value: number): { level: SentimentLevel; color: strin
   }
 }
 
+function getSentimentFromRating(rating?: string): { level: SentimentLevel; color: string } | null {
+  const normalized = rating?.toLowerCase() as CnnRating | undefined;
+
+  switch (normalized) {
+    case "extreme fear":
+      return { level: "Extreme Fear", color: "#ef4444" };
+    case "fear":
+      return { level: "Fear", color: "#f97316" };
+    case "neutral":
+      return { level: "Neutral", color: "#eab308" };
+    case "greed":
+      return { level: "Greed", color: "#84cc16" };
+    case "extreme greed":
+      return { level: "Extreme Greed", color: "#22c55e" };
+    default:
+      return null;
+  }
+}
+
 async function fetchFearGreedIndex(): Promise<FearGreedData | null> {
   try {
-    // Alternative.me Crypto Fear & Greed Index API (free, reliable)
-    const response = await fetch(
-      "https://api.alternative.me/fng/?limit=2",
-      {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
-          "Accept": "application/json",
-        },
-      }
-    );
+    // CNN Fear & Greed Index (stock market)
+    const response = await fetch(CNN_FEAR_GREED_URL, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
+        "Accept": "application/json",
+        "Referer": "https://money.cnn.com/data/fear-and-greed/",
+        "Origin": "https://money.cnn.com",
+      },
+    });
 
     if (!response.ok) return null;
 
     const data = await response.json();
 
-    if (!data?.data?.[0]) return null;
+    const fg = data?.fear_and_greed;
+    if (!fg || typeof fg.score !== "number") return null;
 
-    const current = data.data[0];
-    const previous = data.data[1];
-
-    const value = parseInt(current.value, 10);
-    const prevClose = previous ? parseInt(previous.value, 10) : value;
+    const value = Math.round(fg.score);
+    const prevClose = typeof fg.previous_close === "number" ? Math.round(fg.previous_close) : value;
     const change = value - prevClose;
-    const { level, color } = getSentimentLevel(value);
+    const sentimentFromRating = getSentimentFromRating(fg.rating);
+    const { level, color } = sentimentFromRating ?? getSentimentLevel(value);
+    const timestamp = fg.timestamp ? Date.parse(fg.timestamp) : Date.now();
 
     return {
       value,
@@ -59,7 +81,7 @@ async function fetchFearGreedIndex(): Promise<FearGreedData | null> {
       color,
       previousClose: prevClose,
       change,
-      timestamp: Date.now(),
+      timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp,
     };
   } catch (error) {
     console.error("Error fetching Fear & Greed Index:", error);
