@@ -47,9 +47,17 @@ export default function Header() {
           <ThreatLevel />
         </div>
 
-        {/* Right: Counter */}
-        <div className="hidden sm:flex">
+        {/* Right: Counter + Support */}
+        <div className="hidden sm:flex items-center gap-4">
           <MonitoringCounter />
+          <a
+            href="https://buymeacoffee.com/hamzaosama"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
+          >
+            ☕ Buy me a coffee
+          </a>
         </div>
       </header>
 
