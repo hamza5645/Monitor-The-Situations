@@ -30,7 +30,7 @@ export default function StocksPanel() {
       const params = new URLSearchParams({
         groups: JSON.stringify(activeSituation.stocks),
       });
-      const response = await fetch(`/api/stocks?${params}`, { cache: "no-store" });
+      const response = await fetch(`/api/stocks?${params}`);
       if (response.ok) {
         const data = await response.json();
         setStockGroups(data.groups);

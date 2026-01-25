@@ -37,9 +37,7 @@ export default function WeatherAlertsPanel() {
         params.set("severities", weatherConfig.severityFilter.join(","));
       }
 
-      const response = await fetch(`/api/weather-alerts?${params}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(`/api/weather-alerts?${params}`);
       const data: WeatherAlertAPIResponse = await response.json();
 
       if (data.error) {

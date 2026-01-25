@@ -36,7 +36,7 @@ export default function EarthquakePanel() {
         params.set("radiusKm", earthquakeConfig.focusRegion.radiusKm.toString());
       }
 
-      const response = await fetch(`/api/earthquake?${params}`, { cache: "no-store" });
+      const response = await fetch(`/api/earthquake?${params}`);
       const data: EarthquakeAPIResponse = await response.json();
 
       if (data.error) {

@@ -177,7 +177,7 @@ export default function FearGreedPanel() {
 
   const fetchData = useCallback(async () => {
     try {
-      const response = await fetch("/api/fear-greed", { cache: "no-store" });
+      const response = await fetch("/api/fear-greed");
       if (response.ok) {
         const result = await response.json();
         setData(result);

@@ -41,7 +41,7 @@ export default function NewsPanel() {
       if (activeSituation.news.keywords && activeSituation.news.keywords.length > 0) {
         params.set("keywords", JSON.stringify(activeSituation.news.keywords));
       }
-      const response = await fetch(`/api/news?${params}`, { cache: "no-store" });
+      const response = await fetch(`/api/news?${params}`);
       if (response.ok) {
         const data = await response.json();
         setNews(data.articles || []);
