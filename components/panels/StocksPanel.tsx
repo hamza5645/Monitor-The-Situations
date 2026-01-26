@@ -26,11 +26,16 @@ export default function StocksPanel() {
 
   const fetchStocks = useCallback(async () => {
     try {
-      // Pass situation-specific stock groups to API
-      const params = new URLSearchParams({
-        groups: JSON.stringify(activeSituation.stocks),
-      });
-      const response = await fetch(`/api/stocks?${params}`);
+      // Only send query params for non-default situations to maximize cache hits
+      // Default situation will use API's built-in default stock groups
+      const params = new URLSearchParams();
+
+      if (activeSituation.id !== "default") {
+        params.set("groups", JSON.stringify(activeSituation.stocks));
+      }
+
+      const queryString = params.toString();
+      const response = await fetch(`/api/stocks${queryString ? `?${queryString}` : ""}`);
       if (response.ok) {
         const data = await response.json();
         setStockGroups(data.groups);

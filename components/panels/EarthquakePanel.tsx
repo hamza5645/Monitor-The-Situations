@@ -24,19 +24,24 @@ export default function EarthquakePanel() {
 
   const fetchEarthquakes = useCallback(async () => {
     try {
-      const params = new URLSearchParams({
-        feed: earthquakeConfig.feed,
-        minMag: earthquakeConfig.minMagnitude.toString(),
-      });
+      // Only send params if non-default to maximize cache hits
+      const isDefault = activeSituation.id === "default" && !earthquakeConfig.focusRegion;
+      const params = new URLSearchParams();
 
-      // Add region filtering if configured
-      if (earthquakeConfig.focusRegion) {
-        params.set("focusLat", earthquakeConfig.focusRegion.lat.toString());
-        params.set("focusLon", earthquakeConfig.focusRegion.lon.toString());
-        params.set("radiusKm", earthquakeConfig.focusRegion.radiusKm.toString());
+      if (!isDefault) {
+        params.set("feed", earthquakeConfig.feed);
+        params.set("minMag", earthquakeConfig.minMagnitude.toString());
+
+        // Add region filtering if configured
+        if (earthquakeConfig.focusRegion) {
+          params.set("focusLat", earthquakeConfig.focusRegion.lat.toString());
+          params.set("focusLon", earthquakeConfig.focusRegion.lon.toString());
+          params.set("radiusKm", earthquakeConfig.focusRegion.radiusKm.toString());
+        }
       }
 
-      const response = await fetch(`/api/earthquake?${params}`);
+      const queryString = params.toString();
+      const response = await fetch(`/api/earthquake${queryString ? `?${queryString}` : ""}`);
       const data: EarthquakeAPIResponse = await response.json();
 
       if (data.error) {
@@ -52,7 +57,7 @@ export default function EarthquakePanel() {
     } finally {
       setLoading(false);
     }
-  }, [earthquakeConfig]);
+  }, [earthquakeConfig, activeSituation.id]);
 
   useEffect(() => {
     if (situationIdRef.current !== activeSituation.id) {

@@ -34,14 +34,19 @@ export default function NewsPanel() {
 
   const fetchNews = useCallback(async () => {
     try {
-      // Pass situation-specific feeds and keywords to API
-      const params = new URLSearchParams({
-        feeds: JSON.stringify(activeSituation.news.feeds),
-      });
-      if (activeSituation.news.keywords && activeSituation.news.keywords.length > 0) {
-        params.set("keywords", JSON.stringify(activeSituation.news.keywords));
+      // Only send query params for non-default situations to maximize cache hits
+      // Default situation will use API's built-in DEFAULT_RSS_FEEDS
+      const params = new URLSearchParams();
+
+      if (activeSituation.id !== "default") {
+        params.set("feeds", JSON.stringify(activeSituation.news.feeds));
+        if (activeSituation.news.keywords && activeSituation.news.keywords.length > 0) {
+          params.set("keywords", JSON.stringify(activeSituation.news.keywords));
+        }
       }
-      const response = await fetch(`/api/news?${params}`);
+
+      const queryString = params.toString();
+      const response = await fetch(`/api/news${queryString ? `?${queryString}` : ""}`);
       if (response.ok) {
         const data = await response.json();
         setNews(data.articles || []);

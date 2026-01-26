@@ -27,17 +27,22 @@ export default function WeatherAlertsPanel() {
 
   const fetchAlerts = useCallback(async () => {
     try {
+      // Only send params if non-default to maximize cache hits
+      const isDefault = activeSituation.id === "default";
       const params = new URLSearchParams();
 
-      if (weatherConfig.regions?.states?.length) {
-        params.set("states", weatherConfig.regions.states.join(","));
+      if (!isDefault) {
+        if (weatherConfig.regions?.states?.length) {
+          params.set("states", weatherConfig.regions.states.join(","));
+        }
+
+        if (weatherConfig.severityFilter?.length) {
+          params.set("severities", weatherConfig.severityFilter.join(","));
+        }
       }
 
-      if (weatherConfig.severityFilter?.length) {
-        params.set("severities", weatherConfig.severityFilter.join(","));
-      }
-
-      const response = await fetch(`/api/weather-alerts?${params}`);
+      const queryString = params.toString();
+      const response = await fetch(`/api/weather-alerts${queryString ? `?${queryString}` : ""}`);
       const data: WeatherAlertAPIResponse = await response.json();
 
       if (data.error) {
@@ -53,7 +58,7 @@ export default function WeatherAlertsPanel() {
     } finally {
       setLoading(false);
     }
-  }, [weatherConfig]);
+  }, [weatherConfig, activeSituation.id]);
 
   useEffect(() => {
     if (situationIdRef.current !== activeSituation.id) {
