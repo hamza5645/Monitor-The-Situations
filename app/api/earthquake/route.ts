@@ -82,7 +82,7 @@ async function fetchUSGSFeed(feedUrl: string): Promise<FetchResult> {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
       },
-      // Note: next.revalidate has no effect with dummy incrementalCache
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) {

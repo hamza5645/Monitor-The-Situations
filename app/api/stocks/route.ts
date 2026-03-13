@@ -67,6 +67,7 @@ async function fetchQuote(symbol: string, name: string): Promise<StockQuote | nu
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
         },
+        next: { revalidate: 60 },
       }
     );
 

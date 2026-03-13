@@ -27,6 +27,7 @@ async function fetchTweets(handle: string): Promise<Tweet[]> {
           "Accept": "application/rss+xml, application/xml, text/xml, */*",
         },
         signal: controller.signal,
+        next: { revalidate: 120 },
       });
 
       clearTimeout(timeoutId);

@@ -11,6 +11,7 @@ async function fetchDefconLevel(): Promise<number> {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
       },
+      next: { revalidate: 900 },
     });
 
     if (response.ok) {
@@ -27,7 +28,8 @@ async function fetchDefconLevel(): Promise<number> {
   // Fallback: Use VIX-based estimation
   try {
     const vixResponse = await fetch(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d"
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d",
+      { next: { revalidate: 900 } }
     );
     if (vixResponse.ok) {
       const data = await vixResponse.json();

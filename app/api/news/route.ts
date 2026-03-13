@@ -79,6 +79,7 @@ async function fetchRSSFeed(feedUrl: string, source: string): Promise<NewsArticl
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
       },
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) return [];

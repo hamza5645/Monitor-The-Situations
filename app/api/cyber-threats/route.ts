@@ -228,6 +228,7 @@ async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> 
         "Origin": "https://otx.alienvault.com",
       },
       signal: AbortSignal.timeout(8000),
+      next: { revalidate: 120 },
     }
   );
 
@@ -284,6 +285,7 @@ async function fetchOTXNocThreats(): Promise<ThreatData[]> {
       "Origin": "https://otx.alienvault.com",
     },
     signal: AbortSignal.timeout(8000),
+    next: { revalidate: 120 },
   });
 
   if (!response.ok) {

@@ -60,6 +60,7 @@ async function fetchFearGreedIndex(): Promise<FearGreedData | null> {
         "Referer": "https://money.cnn.com/data/fear-and-greed/",
         "Origin": "https://money.cnn.com",
       },
+      next: { revalidate: 300 },
     });
 
     if (!response.ok) return null;

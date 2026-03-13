@@ -72,7 +72,7 @@ export async function GET(request: Request) {
         "User-Agent": "(MonitorTheSituations, github.com/monitor-situations)",
         Accept: "application/geo+json",
       },
-      // Note: next.revalidate has no effect with dummy incrementalCache
+      next: { revalidate: 120 },
     });
 
     if (!response.ok) {
