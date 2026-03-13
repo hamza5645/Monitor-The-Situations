@@ -19,6 +19,20 @@ const nextConfig: NextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+
+  // Override Next.js Vary header on API routes so Cloudflare CDN caches them.
+  // Next.js adds Vary: rsc, next-router-state-tree, etc. which causes
+  // Cloudflare to skip caching (only Accept-Encoding is supported).
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Vary', value: 'Accept-Encoding' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

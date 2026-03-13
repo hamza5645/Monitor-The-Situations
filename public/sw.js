@@ -1,5 +1,5 @@
 // Service Worker for Monitor the Situations PWA
-const CACHE_VERSION = 'mts-v2';
+const CACHE_VERSION = 'mts-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -56,24 +56,35 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // API routes: network-first with cache fallback
+  // API routes: stale-while-revalidate — serve cached response immediately,
+  // refresh in background so the next poll gets fresh data
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone and cache successful responses
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, clone);
+      caches.open(DYNAMIC_CACHE).then((cache) => {
+        return cache.match(request).then((cached) => {
+          const fetchPromise = fetch(request)
+            .then((response) => {
+              if (response.ok) {
+                cache.put(request, response.clone());
+              }
+              return response;
+            })
+            .catch(() => {
+              // Offline: return cached response or a 503
+              if (cached) return cached;
+              return new Response('{"error":"Offline"}', {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' },
+              });
             });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache when offline
-          return caches.match(request);
-        })
+
+          // Keep the background revalidation alive even after returning cached response
+          event.waitUntil(fetchPromise);
+
+          // Return cached response immediately if available, otherwise wait for network
+          return cached || fetchPromise;
+        });
+      })
     );
     return;
   }

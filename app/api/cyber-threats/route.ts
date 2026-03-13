@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/api-cache";
 
 interface ThreatData {
   id: string;
@@ -338,23 +339,35 @@ async function fetchOTXData(): Promise<{ threats: ThreatData[]; source: string }
   return { threats: [], source: "none" };
 }
 
+const CYBER_CACHE_KEY = "cyber-threats";
+const CYBER_CACHE_TTL = 120;
+
 export async function GET() {
+  const cached = getCached(CYBER_CACHE_KEY);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+      },
+    });
+  }
+
   try {
     const { threats, source } = await fetchOTXData();
+    const body = {
+      success: true,
+      threats,
+      timestamp: Date.now(),
+      source,
+    };
 
-    return NextResponse.json(
-      {
-        success: true,
-        threats,
-        timestamp: Date.now(),
-        source,
+    setCache(CYBER_CACHE_KEY, body, CYBER_CACHE_TTL);
+
+    return NextResponse.json(body, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
       },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
-        },
-      }
-    );
+    });
   } catch (error) {
     console.error("Error in cyber-threats API:", error);
     return NextResponse.json(

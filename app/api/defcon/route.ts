@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/api-cache";
+
+const CACHE_KEY = "defcon";
+const CACHE_TTL = 900; // 15 minutes
 
 async function fetchDefconLevel(): Promise<number> {
   try {
@@ -51,13 +55,25 @@ const DEFCON_LABELS: { [key: number]: string } = {
 };
 
 export async function GET() {
-  const level = await fetchDefconLevel();
+  const cached = getCached<{ level: number; label: string; timestamp: number }>(CACHE_KEY);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
+      },
+    });
+  }
 
-  return NextResponse.json({
+  const level = await fetchDefconLevel();
+  const body = {
     level,
     label: DEFCON_LABELS[level] || "UNKNOWN",
     timestamp: Date.now(),
-  }, {
+  };
+
+  setCache(CACHE_KEY, body, CACHE_TTL);
+
+  return NextResponse.json(body, {
     headers: {
       "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800",
     },

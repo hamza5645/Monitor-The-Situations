@@ -8,6 +8,7 @@ import type {
   WeatherUrgency,
   WeatherCertainty,
 } from "@/types/weather";
+import { getCached, setCache } from "@/lib/api-cache";
 
 // Transform NOAA feature to our format
 function transformAlert(feature: NOAAAlertFeature): WeatherAlert {
@@ -37,12 +38,24 @@ const SEVERITY_ORDER: Record<string, number> = {
   Unknown: 4,
 };
 
+const WEATHER_CACHE_TTL = 120;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
   // Get query params from panel
   const statesParam = searchParams.get("states"); // "TX,FL,LA"
   const severitiesParam = searchParams.get("severities"); // "Extreme,Severe"
+
+  const cacheKey = `weather:${statesParam || "all"}:${severitiesParam || "all"}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=240",
+      },
+    });
+  }
 
   // Build NOAA API URL
   const apiUrl = "https://api.weather.gov/alerts/active";
@@ -59,7 +72,7 @@ export async function GET(request: Request) {
         "User-Agent": "(MonitorTheSituations, github.com/monitor-situations)",
         Accept: "application/geo+json",
       },
-      next: { revalidate: 120 }, // Cache for 2 minutes
+      // Note: next.revalidate has no effect with dummy incrementalCache
     });
 
     if (!response.ok) {
@@ -102,19 +115,20 @@ export async function GET(request: Request) {
       return new Date(b.onset).getTime() - new Date(a.onset).getTime();
     });
 
-    return NextResponse.json(
-      {
-        alerts,
-        count: alerts.length,
-        timestamp: Date.now(),
-        source: "NOAA",
-      } as WeatherAlertAPIResponse,
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=240",
-        },
-      }
-    );
+    const body = {
+      alerts,
+      count: alerts.length,
+      timestamp: Date.now(),
+      source: "NOAA",
+    } as WeatherAlertAPIResponse;
+
+    setCache(cacheKey, body, WEATHER_CACHE_TTL);
+
+    return NextResponse.json(body, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=240",
+      },
+    });
   } catch (error) {
     console.error("NOAA API fetch error:", error);
     return NextResponse.json(

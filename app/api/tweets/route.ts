@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/api-cache";
 
 interface Tweet {
   text: string;
@@ -97,14 +98,27 @@ export async function GET(request: Request) {
     return NextResponse.json({ tweets: [], error: "Invalid handle" }, { status: 400 });
   }
 
-  const tweets = await fetchTweets(cleanHandle);
+  const cacheKey = `tweets:${cleanHandle}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+      },
+    });
+  }
 
-  return NextResponse.json({
+  const tweets = await fetchTweets(cleanHandle);
+  const body = {
     tweets,
     handle: cleanHandle,
     timestamp: Date.now(),
     source: tweets.length > 0 ? "rss" : "none",
-  }, {
+  };
+
+  setCache(cacheKey, body, 120);
+
+  return NextResponse.json(body, {
     headers: {
       "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
     },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { Earthquake } from "@/types/earthquake";
+import { getCached, setCache } from "@/lib/api-cache";
 
 interface USGSFeature {
   id: string;
@@ -81,7 +82,7 @@ async function fetchUSGSFeed(feedUrl: string): Promise<FetchResult> {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
       },
-      next: { revalidate: 60 }, // Cache for 60 seconds
+      // Note: next.revalidate has no effect with dummy incrementalCache
     });
 
     if (!response.ok) {
@@ -102,6 +103,8 @@ async function fetchUSGSFeed(feedUrl: string): Promise<FetchResult> {
   }
 }
 
+const EQ_CACHE_TTL = 60;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const feed = searchParams.get("feed") || "all_hour";
@@ -111,6 +114,16 @@ export async function GET(request: Request) {
   const focusLat = searchParams.get("focusLat");
   const focusLon = searchParams.get("focusLon");
   const radiusKm = searchParams.get("radiusKm");
+
+  const cacheKey = `eq:${feed}:${minMag}:${focusLat}:${focusLon}:${radiusKm}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    });
+  }
 
   // Get feed URL
   const feedUrl = FEED_URLS[feed] || FEED_URLS.all_hour;
@@ -156,12 +169,15 @@ export async function GET(request: Request) {
   // Sort by time (most recent first)
   earthquakes.sort((a, b) => b.time - a.time);
 
-  return NextResponse.json({
+  const body = {
     earthquakes,
     feed,
     count: earthquakes.length,
     timestamp: Date.now(),
-  }, {
+  };
+  setCache(cacheKey, body, EQ_CACHE_TTL);
+
+  return NextResponse.json(body, {
     headers: {
       "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
     },

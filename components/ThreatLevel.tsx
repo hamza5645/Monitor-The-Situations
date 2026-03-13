@@ -23,7 +23,7 @@ export default function ThreatLevel() {
   useEffect(() => {
     const fetchThreat = async () => {
       try {
-        const response = await fetch("/api/defcon", { cache: "no-store" });
+        const response = await fetch("/api/defcon");
         if (response.ok) {
           const data = await response.json();
           const threatData = THREAT_LEVELS.find(t => t.level === data.level) || THREAT_LEVELS[2];

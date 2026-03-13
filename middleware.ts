@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export function middleware() {
+export function middleware(request: NextRequest) {
   const response = NextResponse.next();
+
+  // Strip Next.js Vary headers on API routes so Cloudflare CDN can cache them.
+  // Cloudflare refuses to cache responses with Vary values other than Accept-Encoding.
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    response.headers.set('Vary', 'Accept-Encoding');
+  }
 
   // Security headers
   response.headers.set('X-Content-Type-Options', 'nosniff');

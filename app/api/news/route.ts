@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/api-cache";
 
 interface NewsArticle {
   title: string;
@@ -119,10 +120,22 @@ const FALLBACK_HEADLINES: NewsArticle[] = [
   },
 ];
 
+const NEWS_CACHE_TTL = 60;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const feedsParam = searchParams.get("feeds");
   const keywordsParam = searchParams.get("keywords");
+  const cacheKey = `news:${feedsParam || "default"}:${keywordsParam || ""}`;
+
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    });
+  }
 
   // Parse custom feeds from query param, or use defaults
   let feeds: RSSFeedConfig[] = DEFAULT_RSS_FEEDS;
@@ -173,12 +186,14 @@ export async function GET(request: Request) {
     allArticles = FALLBACK_HEADLINES;
   }
 
-  return NextResponse.json({
-    articles: allArticles.slice(0, 75), // Return up to 75 articles for better coverage
+  const body = {
+    articles: allArticles.slice(0, 75),
     timestamp: Date.now(),
-  }, {
+  };
+  setCache(cacheKey, body, NEWS_CACHE_TTL);
+
+  return NextResponse.json(body, {
     headers: {
-      // Reduced cache to 60s for faster updates
       "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
     },
   });

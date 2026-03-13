@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/api-cache";
 
 interface StockQuote {
   symbol: string;
@@ -95,9 +96,21 @@ async function fetchQuote(symbol: string, name: string): Promise<StockQuote | nu
   }
 }
 
+const STOCKS_CACHE_TTL = 60;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const groupsParam = searchParams.get("groups");
+  const cacheKey = `stocks:${groupsParam || "default"}`;
+
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    });
+  }
 
   // Parse custom groups from query param, or use defaults
   let stockGroups: StockGroupInput[] = DEFAULT_STOCK_GROUPS;
@@ -125,10 +138,10 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    groups,
-    timestamp: Date.now(),
-  }, {
+  const body = { groups, timestamp: Date.now() };
+  setCache(cacheKey, body, STOCKS_CACHE_TTL);
+
+  return NextResponse.json(body, {
     headers: {
       "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
     },

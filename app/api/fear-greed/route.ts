@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCached, setCache } from "@/lib/api-cache";
 
 export type SentimentLevel = "Extreme Fear" | "Fear" | "Neutral" | "Greed" | "Extreme Greed";
 
@@ -89,11 +90,22 @@ async function fetchFearGreedIndex(): Promise<FearGreedData | null> {
   }
 }
 
+const FG_CACHE_KEY = "fear-greed";
+const FG_CACHE_TTL = 300;
+
 export async function GET() {
+  const cached = getCached(FG_CACHE_KEY);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    });
+  }
+
   const data = await fetchFearGreedIndex();
 
   if (!data) {
-    // Return a fallback value if fetch fails
     const { level, color } = getSentimentLevel(50);
     return NextResponse.json(
       {
@@ -113,6 +125,8 @@ export async function GET() {
       }
     );
   }
+
+  setCache(FG_CACHE_KEY, data, FG_CACHE_TTL);
 
   return NextResponse.json(data, {
     headers: {
