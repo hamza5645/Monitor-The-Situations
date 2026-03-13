@@ -11,3 +11,12 @@ mode = "smart"
 [assets]
 directory = ".open-next/assets"
 binding = "ASSETS"
+
+# KV namespaces for OpenNext incremental cache
+[[kv_namespaces]]
+binding = "NEXT_INC_CACHE_KV"
+id = "bd6c3ea1b1cf47fb83c3de0d5641f203"
+
+[[kv_namespaces]]
+binding = "NEXT_TAG_CACHE_KV"
+id = "344dbf37e7e3472c9a9afea535cceccb"
