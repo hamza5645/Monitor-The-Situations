@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCached, setCache } from "@/lib/api-cache";
+import { DEFAULT_SITUATION } from "@/data/presetSituations";
 
 interface NewsArticle {
   title: string;
@@ -13,16 +14,8 @@ interface RSSFeedConfig {
   source: string;
 }
 
-const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = [
-  {
-    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
-    source: "BBC World",
-  },
-  {
-    url: "https://www.theguardian.com/world/rss",
-    source: "The Guardian",
-  },
-];
+// Must match DEFAULT_SITUATION.news.feeds — default dashboard requests omit ?feeds= for CDN cache hits
+const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = DEFAULT_SITUATION.news.feeds;
 
 // Decode HTML entities in RSS content
 function decodeHtmlEntities(text: string): string {

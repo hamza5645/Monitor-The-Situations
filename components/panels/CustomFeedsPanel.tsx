@@ -49,7 +49,7 @@ export default function CustomFeedsPanel() {
       const params = new URLSearchParams({
         feeds: JSON.stringify(feedsForApi),
       });
-      const response = await fetch(`/api/news?${params}`);
+      const response = await fetch(`/api/news?${params}`, { cache: "no-store" });
       if (response.ok) {
         const data = await response.json();
         setArticles(data.articles || []);

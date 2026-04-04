@@ -1,5 +1,5 @@
 // Service Worker for Monitor the Situations PWA
-const CACHE_VERSION = 'mts-v3';
+const CACHE_VERSION = 'mts-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 
@@ -53,6 +53,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
     );
+    return;
+  }
+
+  // Respect explicit live-data fetches from the client. These requests use
+  // cache: "no-store" so panels like Breaking News can bypass the SW cache.
+  if (request.cache === 'no-store') {
+    event.respondWith(fetch(request));
     return;
   }
 

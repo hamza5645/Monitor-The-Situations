@@ -46,7 +46,9 @@ export default function NewsPanel() {
       }
 
       const queryString = params.toString();
-      const response = await fetch(`/api/news${queryString ? `?${queryString}` : ""}`);
+      const response = await fetch(`/api/news${queryString ? `?${queryString}` : ""}`, {
+        cache: "no-store",
+      });
       if (response.ok) {
         const data = await response.json();
         setNews(data.articles || []);
@@ -57,7 +59,7 @@ export default function NewsPanel() {
     } finally {
       setLoading(false);
     }
-  }, [activeSituation.news]);
+  }, [activeSituation.id, activeSituation.news]);
 
   // Re-fetch when situation changes
   useEffect(() => {
@@ -80,6 +82,9 @@ export default function NewsPanel() {
 
   // Duplicate news for seamless ticker loop
   const tickerContent = [...news, ...news];
+  // Remount ticker when headlines change so Safari/WebKit repaints animated layer; list already re-renders from state
+  const tickerKey =
+    news.length > 0 ? news.slice(0, 8).map((n) => n.url).join("|") : "empty";
 
   return (
     <div className="panel h-full flex flex-col">
@@ -98,7 +103,7 @@ export default function NewsPanel() {
         {loading ? (
           <div className="text-center text-gray-500 text-xs">Loading headlines...</div>
         ) : news.length > 0 ? (
-          <div className="ticker-content">
+          <div className="ticker-content" key={tickerKey}>
             {tickerContent.map((item, index) => (
               <span key={index} className="inline-flex items-center mx-8">
                 <span className="text-red-500 mr-2">●</span>
