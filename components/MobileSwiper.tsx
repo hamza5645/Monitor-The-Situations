@@ -6,7 +6,12 @@ import "swiper/css";
 import "swiper/css/pagination";
 
 import { useSituation } from "@/context/SituationContext";
-import { getPanelById, type PanelConfig } from "@/config/panelRegistry";
+import {
+  getPanelById,
+  getCustomFeedId,
+  isCustomFeedPanelId,
+} from "@/config/panelRegistry";
+import SingleFeedPanel from "./panels/SingleFeedPanel";
 
 export default function MobileSwiper() {
   const { activeLayout } = useSituation();
@@ -15,10 +20,6 @@ export default function MobileSwiper() {
   const visiblePanelIds = activeLayout?.visiblePanels ||
     activeLayout?.order ||
     ["twitter", "flight", "stocks", "news"];
-
-  const panels = visiblePanelIds
-    .map((id) => getPanelById(id))
-    .filter((p): p is PanelConfig => p !== undefined);
 
   return (
     <div className="w-full h-full">
@@ -32,7 +33,20 @@ export default function MobileSwiper() {
         slidesPerView={1}
         className="h-full"
       >
-        {panels.map((panel) => {
+        {visiblePanelIds.map((panelId) => {
+          if (isCustomFeedPanelId(panelId)) {
+            return (
+              <SwiperSlide key={panelId} className="h-full">
+                <div className="h-full p-2">
+                  <SingleFeedPanel feedId={getCustomFeedId(panelId)} />
+                </div>
+              </SwiperSlide>
+            );
+          }
+
+          const panel = getPanelById(panelId);
+          if (!panel) return null;
+
           const Component = panel.component;
           return (
             <SwiperSlide key={panel.id} className="h-full">

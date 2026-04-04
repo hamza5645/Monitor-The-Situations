@@ -30,6 +30,7 @@ export default function WeatherAlertsPanel() {
       // Only send params if non-default to maximize cache hits
       const isDefault = activeSituation.id === "default";
       const params = new URLSearchParams();
+      params.set("marine", weatherConfig.includeMarine ? "1" : "0");
 
       if (!isDefault) {
         if (weatherConfig.regions?.states?.length) {

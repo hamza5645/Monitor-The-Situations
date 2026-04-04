@@ -67,6 +67,8 @@ export interface WeatherConfig {
 
 // World clock panel configuration
 export interface ClockZoneConfig {
+  /** Stable id for keys/removal; optional on legacy stored data (migrated on load). */
+  id?: string;
   city: string;
   timezone: string; // IANA timezone e.g. "America/New_York"
 }

@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCached, setCache } from "@/lib/api-cache";
 import { DEFAULT_SITUATION } from "@/data/presetSituations";
-
-interface NewsArticle {
-  title: string;
-  source: string;
-  url: string;
-  publishedAt: string;
-}
+import { articlesFromRssXml, type NewsArticle } from "@/lib/parse-rss-xml";
+import { isAllowedFeedUrl } from "@/lib/validate-feed-url";
 
 interface RSSFeedConfig {
   url: string;
@@ -17,53 +12,64 @@ interface RSSFeedConfig {
 // Must match DEFAULT_SITUATION.news.feeds — default dashboard requests omit ?feeds= for CDN cache hits
 const DEFAULT_RSS_FEEDS: RSSFeedConfig[] = DEFAULT_SITUATION.news.feeds;
 
-// Decode HTML entities in RSS content
-function decodeHtmlEntities(text: string): string {
-  return text
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&#8217;/g, "'")
-    .replace(/&#8216;/g, "'")
-    .replace(/&#8220;/g, '"')
-    .replace(/&#8221;/g, '"')
-    .replace(/&nbsp;/g, ' ');
+const NEWS_CACHE_TTL = 60;
+const MAX_FEEDS_PER_REQUEST = 10;
+const FETCH_TIMEOUT_MS = 12_000;
+const ITEMS_PER_FEED = 25;
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(input)
+  );
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-function parseRSSItem(item: string, source: string): NewsArticle | null {
-  try {
-    const titleMatch = item.match(/<title[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/s);
-    const linkMatch = item.match(/<link[^>]*>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/link>/s);
-    const pubDateMatch = item.match(/<pubDate[^>]*>(.*?)<\/pubDate>/s);
-
-    if (!titleMatch || !linkMatch) return null;
-
-    const title = decodeHtmlEntities(titleMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, ''));
-    const url = linkMatch[1].trim().replace(/<!\[CDATA\[|\]\]>/g, '');
-
-    // Filter out items where title matches the source name (likely RSS channel metadata)
-    const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const normalizedSource = source.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (normalizedSource.includes(normalizedTitle) || normalizedTitle === normalizedSource) {
-      return null;
-    }
-
-    // Use a fixed old date for items without pubDate so they sort to the bottom
-    // instead of getting fresh "now" timestamps that push them to the top
-    const fallbackDate = "2000-01-01T00:00:00.000Z";
-    return {
-      title,
-      source,
-      url,
-      publishedAt: pubDateMatch ? new Date(pubDateMatch[1]).toISOString() : fallbackDate,
-    };
-  } catch {
-    return null;
+function normalizeFeedList(raw: unknown): RSSFeedConfig[] {
+  if (!Array.isArray(raw)) return [];
+  const out: RSSFeedConfig[] = [];
+  for (const entry of raw) {
+    if (out.length >= MAX_FEEDS_PER_REQUEST) break;
+    if (!entry || typeof entry !== "object") continue;
+    const url = (entry as RSSFeedConfig).url;
+    const source = (entry as RSSFeedConfig).source;
+    if (typeof url !== "string" || typeof source !== "string") continue;
+    const trimmedUrl = url.trim();
+    const trimmedSource = source.trim();
+    if (!trimmedUrl || !trimmedSource) continue;
+    if (!isAllowedFeedUrl(trimmedUrl)) continue;
+    out.push({ url: trimmedUrl, source: trimmedSource });
   }
+  return out;
+}
+
+function normalizeKeywords(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const kw = raw
+    .filter((k): k is string => typeof k === "string")
+    .map((k) => k.trim())
+    .filter(Boolean);
+  return kw.length ? kw : null;
+}
+
+async function buildCacheKey(
+  feeds: RSSFeedConfig[],
+  keywords: string[] | null,
+  isDefaultFeeds: boolean
+): Promise<string> {
+  if (isDefaultFeeds && !keywords?.length) {
+    return "news:default:v1";
+  }
+  const payload = {
+    feeds: [...feeds]
+      .map((f) => ({ url: f.url, source: f.source }))
+      .sort((a, b) => a.url.localeCompare(b.url)),
+    keywords: keywords ? [...keywords].sort() : [],
+  };
+  const hash = await sha256Hex(JSON.stringify(payload));
+  return `news:${hash}`;
 }
 
 async function fetchRSSFeed(feedUrl: string, source: string): Promise<NewsArticle[]> {
@@ -71,22 +77,15 @@ async function fetchRSSFeed(feedUrl: string, source: string): Promise<NewsArticl
     const response = await fetch(feedUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; MonitorTheSituations/1.0)",
+        Accept: "application/rss+xml, application/xml, text/xml, */*",
       },
-      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) return [];
 
     const xml = await response.text();
-    const itemMatches = xml.match(/<item[^>]*>[\s\S]*?<\/item>/g);
-    if (!itemMatches) return [];
-
-    const articles = itemMatches
-      .slice(0, 25) // Get 25 items per feed for more coverage
-      .map((item) => parseRSSItem(item, source))
-      .filter((a): a is NewsArticle => a !== null);
-
-    return articles;
+    return articlesFromRssXml(xml, source, ITEMS_PER_FEED);
   } catch (error) {
     console.error(`Error fetching ${source}:`, error);
     return [];
@@ -114,15 +113,46 @@ const FALLBACK_HEADLINES: NewsArticle[] = [
   },
 ];
 
-const NEWS_CACHE_TTL = 60;
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const feedsParam = searchParams.get("feeds");
   const keywordsParam = searchParams.get("keywords");
-  const cacheKey = `news:${feedsParam || "default"}:${keywordsParam || ""}`;
 
-  const cached = getCached(cacheKey);
+  let feeds: RSSFeedConfig[] = DEFAULT_RSS_FEEDS;
+  let isDefaultFeeds = true;
+
+  if (feedsParam) {
+    try {
+      const parsed = JSON.parse(feedsParam) as unknown;
+      const rawList = Array.isArray(parsed) ? parsed : [];
+      const normalized = normalizeFeedList(rawList);
+      if (normalized.length > 0) {
+        feeds = normalized;
+        isDefaultFeeds = false;
+      } else if (rawList.length > 0) {
+        // Client sent feeds but none passed validation (e.g. non-HTTPS URLs)
+        feeds = [];
+        isDefaultFeeds = false;
+      }
+    } catch {
+      // keep defaults
+    }
+  }
+
+  let keywords: string[] | null = null;
+  if (keywordsParam) {
+    try {
+      keywords = normalizeKeywords(JSON.parse(keywordsParam) as unknown);
+    } catch {
+      keywords = null;
+    }
+  }
+
+  const cacheKey = await buildCacheKey(feeds, keywords, isDefaultFeeds);
+
+  const cached = getCached<{ articles: NewsArticle[]; timestamp: number }>(
+    cacheKey
+  );
   if (cached) {
     return NextResponse.json(cached, {
       headers: {
@@ -131,36 +161,17 @@ export async function GET(request: Request) {
     });
   }
 
-  // Parse custom feeds from query param, or use defaults
-  let feeds: RSSFeedConfig[] = DEFAULT_RSS_FEEDS;
-  if (feedsParam) {
-    try {
-      feeds = JSON.parse(feedsParam) as RSSFeedConfig[];
-    } catch {
-      feeds = DEFAULT_RSS_FEEDS;
-    }
-  }
-
-  // Parse keywords for filtering
-  let keywords: string[] | null = null;
-  if (keywordsParam) {
-    try {
-      keywords = JSON.parse(keywordsParam) as string[];
-    } catch {
-      keywords = null;
-    }
-  }
-
   let allArticles: NewsArticle[] = [];
 
-  const feedPromises = feeds.map((feed) => fetchRSSFeed(feed.url, feed.source));
+  const feedPromises = feeds.map((feed) =>
+    fetchRSSFeed(feed.url, feed.source)
+  );
   const feedResults = await Promise.all(feedPromises);
 
   for (const articles of feedResults) {
     allArticles = [...allArticles, ...articles];
   }
 
-  // Filter by keywords if provided
   if (keywords && keywords.length > 0) {
     const lowerKeywords = keywords.map((k) => k.toLowerCase());
     allArticles = allArticles.filter((article) =>
@@ -168,11 +179,10 @@ export async function GET(request: Request) {
     );
   }
 
-  // Sort by publishedAt, with URL as tiebreaker for stable ordering
   allArticles.sort((a, b) => {
-    const timeDiff = new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    const timeDiff =
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     if (timeDiff !== 0) return timeDiff;
-    // Use URL as stable tiebreaker when timestamps are equal
     return a.url.localeCompare(b.url);
   });
 
