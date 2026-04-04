@@ -6,11 +6,11 @@ import type { ClockZoneConfig } from "@/types/situation";
 
 // Default zones used when no situation-specific config exists
 const DEFAULT_ZONES: ClockZoneConfig[] = [
-  { city: "Washington DC", timezone: "America/New_York" },
-  { city: "Moscow", timezone: "Europe/Moscow" },
-  { city: "Beijing", timezone: "Asia/Shanghai" },
-  { city: "Gaza", timezone: "Asia/Gaza" },
-  { city: "Kyiv", timezone: "Europe/Kyiv" },
+  { id: "preset-washington-dc", city: "Washington DC", timezone: "America/New_York" },
+  { id: "preset-moscow", city: "Moscow", timezone: "Europe/Moscow" },
+  { id: "preset-beijing", city: "Beijing", timezone: "Asia/Shanghai" },
+  { id: "preset-gaza", city: "Gaza", timezone: "Asia/Gaza" },
+  { id: "preset-kyiv", city: "Kyiv", timezone: "Europe/Kyiv" },
 ];
 
 const STORAGE_KEY = "mts-custom-clocks";
@@ -41,13 +41,26 @@ function timezoneToCityName(timezone: string): string {
   return parts[parts.length - 1].replace(/_/g, " ");
 }
 
+function ensureZoneIds(zones: ClockZoneConfig[]): ClockZoneConfig[] {
+  return zones.map((z) =>
+    z.id ? z : { ...z, id: crypto.randomUUID() }
+  );
+}
+
 function getCustomZones(situationId: string): ClockZoneConfig[] {
   if (typeof window === "undefined") return [];
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data = JSON.parse(stored);
-      return data[situationId] || [];
+      const raw = (data[situationId] || []) as ClockZoneConfig[];
+      const migrated = ensureZoneIds(raw);
+      const hadLegacy = raw.some((z) => !z.id);
+      if (hadLegacy) {
+        data[situationId] = migrated;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+      return migrated;
     }
   } catch {
     // ignore
@@ -195,6 +208,7 @@ function AddTimezoneCard({
   const handleAdd = () => {
     if (selectedTimezone && customName.trim()) {
       onAdd({
+        id: crypto.randomUUID(),
         city: customName.trim(),
         timezone: selectedTimezone,
       });
@@ -331,8 +345,8 @@ export default function WorldClockPanel() {
     saveCustomZones(situationId, newCustomZones);
   };
 
-  const handleRemoveZone = (city: string) => {
-    const newCustomZones = customZones.filter((z) => z.city !== city);
+  const handleRemoveZone = (zoneId: string) => {
+    const newCustomZones = customZones.filter((z) => z.id !== zoneId);
     setCustomZones(newCustomZones);
     saveCustomZones(situationId, newCustomZones);
   };
@@ -348,14 +362,17 @@ export default function WorldClockPanel() {
       <div className="flex-1 overflow-y-auto p-2">
         <div className="grid grid-cols-2 gap-2">
           {baseZones.map((zone) => (
-            <ClockCard key={zone.city} zone={zone} />
+            <ClockCard
+              key={zone.id ?? `${zone.timezone}-${zone.city}`}
+              zone={zone}
+            />
           ))}
           {mounted && customZones.map((zone) => (
             <ClockCard
-              key={zone.city}
+              key={zone.id ?? `${zone.timezone}-${zone.city}`}
               zone={zone}
               isCustom
-              onRemove={() => handleRemoveZone(zone.city)}
+              onRemove={() => handleRemoveZone(zone.id!)}
             />
           ))}
           {mounted && (

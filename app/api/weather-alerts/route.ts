@@ -9,6 +9,7 @@ import type {
   WeatherCertainty,
 } from "@/types/weather";
 import { getCached, setCache } from "@/lib/api-cache";
+import { isLikelyMarineWeatherEvent } from "@/lib/marine-weather";
 
 // Transform NOAA feature to our format
 function transformAlert(feature: NOAAAlertFeature): WeatherAlert {
@@ -46,8 +47,9 @@ export async function GET(request: Request) {
   // Get query params from panel
   const statesParam = searchParams.get("states"); // "TX,FL,LA"
   const severitiesParam = searchParams.get("severities"); // "Extreme,Severe"
+  const marineParam = searchParams.get("marine"); // "1" include all, "0" exclude marine-heavy events
 
-  const cacheKey = `weather:${statesParam || "all"}:${severitiesParam || "all"}`;
+  const cacheKey = `weather:${statesParam || "all"}:${severitiesParam || "all"}:${marineParam ?? "legacy"}`;
   const cached = getCached(cacheKey);
   if (cached) {
     return NextResponse.json(cached, {
@@ -101,6 +103,10 @@ export async function GET(request: Request) {
     if (severitiesParam && severitiesParam.trim()) {
       const severities = severitiesParam.split(",").map((s) => s.trim());
       alerts = alerts.filter((a) => severities.includes(a.severity));
+    }
+
+    if (marineParam === "0") {
+      alerts = alerts.filter((a) => !isLikelyMarineWeatherEvent(a.event));
     }
 
     // Filter out expired alerts

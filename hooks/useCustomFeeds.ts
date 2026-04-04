@@ -34,29 +34,26 @@ export function useCustomFeeds() {
     DEFAULT_STATE
   );
 
-  const addFeed = useCallback(
-    (url: string, source: string) => {
-      const newFeed: CustomFeed = {
-        id: generateId(),
-        url: url.trim(),
-        source: source.trim(),
-        addedAt: new Date().toISOString(),
-      };
-      setState({
-        feeds: [...state.feeds, newFeed],
-      });
-      return newFeed.id;
-    },
-    [state.feeds, setState]
-  );
+  const addFeed = useCallback((url: string, source: string) => {
+    const newFeed: CustomFeed = {
+      id: generateId(),
+      url: url.trim(),
+      source: source.trim(),
+      addedAt: new Date().toISOString(),
+    };
+    setState((prev) => ({
+      feeds: [...prev.feeds, newFeed],
+    }));
+    return newFeed.id;
+  }, [setState]);
 
   const removeFeed = useCallback(
     (id: string) => {
-      setState({
-        feeds: state.feeds.filter((f) => f.id !== id),
-      });
+      setState((prev) => ({
+        feeds: prev.feeds.filter((f) => f.id !== id),
+      }));
     },
-    [state.feeds, setState]
+    [setState]
   );
 
   const feedsForApi = useMemo(() => {

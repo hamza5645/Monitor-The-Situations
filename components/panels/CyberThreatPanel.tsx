@@ -46,7 +46,11 @@ export default function CyberThreatPanel() {
       if (data.success) {
         // Add new threats to existing ones, keep last 50
         setThreats((prev) => {
-          const combined = [...data.threats, ...prev].slice(0, 50);
+          const byId = new Map<string, ThreatData>();
+          // New threats first (higher priority), then old
+          for (const t of data.threats) byId.set(t.id, t);
+          for (const t of prev) if (!byId.has(t.id)) byId.set(t.id, t);
+          const combined = [...byId.values()].slice(0, 50);
           threatsRef.current = combined;
           return combined;
         });
@@ -305,10 +309,10 @@ export default function CyberThreatPanel() {
       {/* Recent attacks log - below map */}
       {threats.length > 0 && (
         <div className="bg-black/80 text-[9px] font-mono px-2 py-1 flex gap-3 overflow-x-auto">
-          {threats.slice(0, 3).map((t) => {
+          {threats.slice(0, 3).map((t, i) => {
             const sameLocation = t.srcCountry === t.dstCountry;
             return (
-              <span key={t.id} className="whitespace-nowrap">
+              <span key={`${t.id}-${i}`} className="whitespace-nowrap">
                 <span className="text-red-500">{t.threatType}</span>
                 <span className="text-gray-500">
                   {sameLocation ? ` ${t.srcCountry}` : ` ${t.srcCountry} → ${t.dstCountry}`}

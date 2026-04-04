@@ -47,7 +47,7 @@ export default function StocksPanel() {
     } finally {
       setLoading(false);
     }
-  }, [activeSituation.stocks]);
+  }, [activeSituation.id, activeSituation.stocks]);
 
   // Re-fetch when situation changes
   useEffect(() => {
