@@ -246,9 +246,13 @@ async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> 
 
   const now = Date.now();
   const threats: ThreatData[] = [];
+  const seenPulseIds = new Set<string>();
 
   // Process each pulse and create threat visualizations
   for (const pulse of data.results.slice(0, MAX_OTX_THREATS)) {
+    if (seenPulseIds.has(pulse.id)) continue;
+    seenPulseIds.add(pulse.id);
+
     const srcCode = inferSourceCountryCode(pulse);
     const dstCode = getTargetCountryCode(pulse.targeted_countries);
 
@@ -260,7 +264,7 @@ async function fetchOTXSubscribedThreats(apiKey: string): Promise<ThreatData[]> 
     if (!src || !dst) continue;
 
     threats.push({
-      id: `otx-${pulse.id}-${threats.length}`,
+      id: `otx-${pulse.id}`,
       srcLat: src.lat,
       srcLng: src.lng,
       dstLat: dst.lat,
