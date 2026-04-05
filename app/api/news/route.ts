@@ -92,27 +92,6 @@ async function fetchRSSFeed(feedUrl: string, source: string): Promise<NewsArticl
   }
 }
 
-const FALLBACK_HEADLINES: NewsArticle[] = [
-  {
-    title: "World leaders continue to monitor global developments",
-    source: "Wire Services",
-    url: "#",
-    publishedAt: new Date().toISOString(),
-  },
-  {
-    title: "Markets react to geopolitical tensions",
-    source: "Financial News",
-    url: "#",
-    publishedAt: new Date().toISOString(),
-  },
-  {
-    title: "International community calls for diplomatic solutions",
-    source: "World Affairs",
-    url: "#",
-    publishedAt: new Date().toISOString(),
-  },
-];
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const feedsParam = searchParams.get("feeds");
@@ -185,10 +164,6 @@ export async function GET(request: Request) {
     if (timeDiff !== 0) return timeDiff;
     return a.url.localeCompare(b.url);
   });
-
-  if (allArticles.length === 0) {
-    allArticles = FALLBACK_HEADLINES;
-  }
 
   const body = {
     articles: allArticles.slice(0, 75),

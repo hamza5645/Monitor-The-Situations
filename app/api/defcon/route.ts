@@ -4,7 +4,7 @@ import { getCached, setCache } from "@/lib/api-cache";
 const CACHE_KEY = "defcon";
 const CACHE_TTL = 900; // 15 minutes
 
-async function fetchDefconLevel(): Promise<number> {
+async function fetchDefconLevel(): Promise<number | null> {
   try {
     // Try to scrape defconlevel.com
     const response = await fetch("https://www.defconlevel.com/current-level.php", {
@@ -25,27 +25,7 @@ async function fetchDefconLevel(): Promise<number> {
     console.error("Error fetching DEFCON level:", error);
   }
 
-  // Fallback: Use VIX-based estimation
-  try {
-    const vixResponse = await fetch(
-      "https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d",
-      { next: { revalidate: 900 } }
-    );
-    if (vixResponse.ok) {
-      const data = await vixResponse.json();
-      const vix = data.chart?.result?.[0]?.meta?.regularMarketPrice || 20;
-
-      if (vix < 15) return 5;
-      if (vix < 20) return 4;
-      if (vix < 25) return 3;
-      if (vix < 30) return 2;
-      return 1;
-    }
-  } catch (error) {
-    console.error("Error fetching VIX:", error);
-  }
-
-  return 3; // Default to elevated
+  return null;
 }
 
 const DEFCON_LABELS: { [key: number]: string } = {
@@ -67,6 +47,14 @@ export async function GET() {
   }
 
   const level = await fetchDefconLevel();
+
+  if (level === null) {
+    return NextResponse.json(
+      { error: "Failed to fetch DEFCON level" },
+      { status: 502 }
+    );
+  }
+
   const body = {
     level,
     label: DEFCON_LABELS[level] || "UNKNOWN",

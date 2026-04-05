@@ -17,8 +17,9 @@ const THREAT_LEVELS: ThreatData[] = [
 ];
 
 export default function ThreatLevel() {
-  const [threat, setThreat] = useState<ThreatData>(THREAT_LEVELS[2]); // Default to ELEVATED
+  const [threat, setThreat] = useState<ThreatData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchThreat = async () => {
@@ -26,18 +27,25 @@ export default function ThreatLevel() {
         const response = await fetch("/api/defcon");
         if (response.ok) {
           const data = await response.json();
-          const threatData = THREAT_LEVELS.find(t => t.level === data.level) || THREAT_LEVELS[2];
-          setThreat(threatData);
+          const threatData = THREAT_LEVELS.find(t => t.level === data.level);
+          if (threatData) {
+            setThreat(threatData);
+            setError(false);
+          } else {
+            setError(true);
+          }
+        } else {
+          setError(true);
         }
-      } catch (error) {
-        console.error("Failed to fetch threat level:", error);
+      } catch (err) {
+        console.error("Failed to fetch threat level:", err);
+        setError(true);
       } finally {
         setLoading(false);
       }
     };
 
     fetchThreat();
-    // Refresh every 60 seconds for real-time monitoring
     const interval = setInterval(fetchThreat, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
@@ -49,14 +57,14 @@ export default function ThreatLevel() {
       </div>
       <div className="flex items-center gap-2">
         <div
-          className={`w-2 h-2 rounded-full ${loading ? 'bg-gray-500' : ''} ${!loading && threat.color === 'threat-stable' ? 'bg-green-500' : ''} ${!loading && threat.color === 'threat-elevated' ? 'bg-yellow-500' : ''} ${!loading && threat.color === 'threat-high' ? 'bg-orange-500' : ''} ${!loading && threat.color === 'threat-critical' ? 'bg-red-500' : ''}`}
+          className={`w-2 h-2 rounded-full ${loading || error || !threat ? 'bg-gray-500' : ''} ${!loading && !error && threat?.color === 'threat-stable' ? 'bg-green-500' : ''} ${!loading && !error && threat?.color === 'threat-elevated' ? 'bg-yellow-500' : ''} ${!loading && !error && threat?.color === 'threat-high' ? 'bg-orange-500' : ''} ${!loading && !error && threat?.color === 'threat-critical' ? 'bg-red-500' : ''}`}
           style={{
-            animation: loading ? 'none' : 'pulse-dot 2s infinite',
-            boxShadow: loading ? 'none' : `0 0 10px currentColor`
+            animation: loading || error || !threat ? 'none' : 'pulse-dot 2s infinite',
+            boxShadow: loading || error || !threat ? 'none' : `0 0 10px currentColor`
           }}
         />
-        <span className={`text-xs font-bold tracking-wider ${loading ? 'text-gray-500' : threat.color}`}>
-          {loading ? "LOADING" : threat.label}
+        <span className={`text-xs font-bold tracking-wider ${loading ? 'text-gray-500' : error || !threat ? 'text-gray-600' : threat.color}`}>
+          {loading ? "LOADING" : error || !threat ? "UNAVAILABLE" : threat.label}
         </span>
       </div>
     </div>
