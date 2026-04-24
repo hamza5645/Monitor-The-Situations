@@ -93,9 +93,17 @@ function saveState(state: SituationsState): void {
   }
 }
 
-export function SituationProvider({ children }: { children: React.ReactNode }) {
+interface SituationProviderProps {
+  children: React.ReactNode;
+  initialSituationId?: string;
+}
+
+export function SituationProvider({
+  children,
+  initialSituationId,
+}: SituationProviderProps) {
   const [state, setState] = useState<SituationsState>({
-    activeSituationId: "default",
+    activeSituationId: initialSituationId || "default",
     customSituations: [],
     presetLayoutOverrides: {}
   });
@@ -104,9 +112,12 @@ export function SituationProvider({ children }: { children: React.ReactNode }) {
   // Load from storage on mount
   useEffect(() => {
     const loaded = loadState();
-    setState(loaded);
+    setState({
+      ...loaded,
+      activeSituationId: initialSituationId || loaded.activeSituationId || "default",
+    });
     setMounted(true);
-  }, []);
+  }, [initialSituationId]);
 
   // Save to storage when state changes (after mount)
   useEffect(() => {
