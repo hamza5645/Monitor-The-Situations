@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSituation } from "@/context/SituationContext";
 import type { EarthquakeConfig } from "@/types/situation";
 import type { Earthquake, EarthquakeAPIResponse } from "@/types/earthquake";
+import { usePolling } from "@/hooks/usePolling";
 
 // Default config if situation doesn't have earthquake config
 const DEFAULT_EARTHQUAKE_CONFIG: EarthquakeConfig = {
@@ -64,15 +65,12 @@ export default function EarthquakePanel() {
       situationIdRef.current = activeSituation.id;
       setLoading(true);
     }
-    fetchEarthquakes();
-    // Refresh every 30 seconds
-    const dataInterval = setInterval(fetchEarthquakes, 30 * 1000);
     const tickInterval = setInterval(() => setSecondsAgo((prev) => prev + 1), 1000);
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(tickInterval);
-    };
-  }, [fetchEarthquakes, activeSituation.id]);
+    return () => clearInterval(tickInterval);
+  }, [activeSituation.id]);
+
+  // Refresh every 30 seconds
+  usePolling(fetchEarthquakes, 30 * 1000);
 
   const getMagnitudeColor = (mag: number) => {
     if (mag >= 6.0) return "text-red-500";

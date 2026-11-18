@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useCustomFeeds, type CustomFeed } from "@/hooks/useCustomFeeds";
+import { usePolling } from "@/hooks/usePolling";
 
 interface NewsItem {
   title: string;
@@ -65,17 +66,13 @@ export default function SingleFeedPanel({ feedId }: SingleFeedPanelProps) {
   }, [feed]);
 
   // Refresh on mount and periodically
+  usePolling(fetchArticles, 30 * 1000, !!feed);
   useEffect(() => {
     if (feed) {
-      fetchArticles();
-      const dataInterval = setInterval(fetchArticles, 30 * 1000);
       const tickInterval = setInterval(() => setSecondsAgo((p) => p + 1), 1000);
-      return () => {
-        clearInterval(dataInterval);
-        clearInterval(tickInterval);
-      };
+      return () => clearInterval(tickInterval);
     }
-  }, [feed, fetchArticles]);
+  }, [feed]);
 
   // Feed not found
   if (!feed) {

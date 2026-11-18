@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSituation } from "@/context/SituationContext";
+import { usePolling } from "@/hooks/usePolling";
 
 interface NewsItem {
   title: string;
@@ -67,18 +68,15 @@ export default function NewsPanel() {
       situationIdRef.current = activeSituation.id;
       setLoading(true);
     }
-    fetchNews();
-    // Refresh every 20 seconds for real-time breaking news updates
-    const dataInterval = setInterval(fetchNews, 20 * 1000);
     // Update seconds counter every second
     const tickInterval = setInterval(() => {
       setSecondsAgo((prev) => prev + 1);
     }, 1000);
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(tickInterval);
-    };
-  }, [fetchNews, activeSituation.id]);
+    return () => clearInterval(tickInterval);
+  }, [activeSituation.id]);
+
+  // Route caches for 60s; polling faster just returns the same data
+  usePolling(fetchNews, 30 * 1000);
 
   // Duplicate news for seamless ticker loop
   const tickerContent = [...news, ...news];

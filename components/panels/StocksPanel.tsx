@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSituation } from "@/context/SituationContext";
+import { usePolling } from "@/hooks/usePolling";
 
 interface StockData {
   symbol: string;
@@ -55,18 +56,15 @@ export default function StocksPanel() {
       situationIdRef.current = activeSituation.id;
       setLoading(true);
     }
-    fetchStocks();
-    // Refresh every 10 seconds for real-time feel
-    const dataInterval = setInterval(fetchStocks, 10 * 1000);
     // Update seconds counter every second
     const tickInterval = setInterval(() => {
       setSecondsAgo((prev) => prev + 1);
     }, 1000);
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(tickInterval);
-    };
-  }, [fetchStocks, activeSituation.id]);
+    return () => clearInterval(tickInterval);
+  }, [activeSituation.id]);
+
+  // Route caches for 60s; polling faster just returns the same data
+  usePolling(fetchStocks, 30 * 1000);
 
   const formatPrice = (price: number) => {
     return price >= 1000 ? price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : price.toFixed(2);

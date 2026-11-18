@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { usePolling } from "@/hooks/usePolling";
 
 interface ThreatData {
   id: string;
@@ -248,14 +249,8 @@ export default function CyberThreatPanel() {
   // Keep ref in sync
   drawRef.current = draw;
 
-  useEffect(() => {
-    fetchThreats();
-    const interval = setInterval(fetchThreats, 5000); // Fetch every 5 seconds
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [fetchThreats]);
+  // Route caches for 120s; polling faster just returns the same data
+  usePolling(fetchThreats, 60 * 1000);
 
   useEffect(() => {
     const canvas = canvasRef.current;

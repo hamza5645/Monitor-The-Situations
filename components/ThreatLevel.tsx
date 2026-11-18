@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { usePolling } from "@/hooks/usePolling";
 
 interface ThreatData {
   level: number;
@@ -21,34 +22,30 @@ export default function ThreatLevel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    const fetchThreat = async () => {
-      try {
-        const response = await fetch("/api/defcon");
-        if (response.ok) {
-          const data = await response.json();
-          const threatData = THREAT_LEVELS.find(t => t.level === data.level);
-          if (threatData) {
-            setThreat(threatData);
-            setError(false);
-          } else {
-            setError(true);
-          }
+  const fetchThreat = useCallback(async () => {
+    try {
+      const response = await fetch("/api/defcon");
+      if (response.ok) {
+        const data = await response.json();
+        const threatData = THREAT_LEVELS.find(t => t.level === data.level);
+        if (threatData) {
+          setThreat(threatData);
+          setError(false);
         } else {
           setError(true);
         }
-      } catch (err) {
-        console.error("Failed to fetch threat level:", err);
+      } else {
         setError(true);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchThreat();
-    const interval = setInterval(fetchThreat, 60 * 1000);
-    return () => clearInterval(interval);
+    } catch (err) {
+      console.error("Failed to fetch threat level:", err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  usePolling(fetchThreat, 60 * 1000);
 
   return (
     <div className="flex items-center gap-3">

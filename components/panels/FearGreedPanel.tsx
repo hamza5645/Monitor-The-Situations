@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePolling } from "@/hooks/usePolling";
 
 interface FearGreedData {
   value: number;
@@ -190,17 +191,13 @@ export default function FearGreedPanel() {
     }
   }, []);
 
+  usePolling(fetchData, 60 * 1000);
   useEffect(() => {
-    fetchData();
-    const dataInterval = setInterval(fetchData, 60 * 1000);
     const tickInterval = setInterval(() => {
       setSecondsAgo((prev) => prev + 1);
     }, 1000);
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(tickInterval);
-    };
-  }, [fetchData]);
+    return () => clearInterval(tickInterval);
+  }, []);
 
   return (
     <div className="panel h-full flex flex-col">

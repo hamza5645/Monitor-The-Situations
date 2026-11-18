@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSituation } from "@/context/SituationContext";
 import type { WeatherConfig } from "@/types/situation";
 import type { WeatherAlert, WeatherAlertAPIResponse } from "@/types/weather";
+import { usePolling } from "@/hooks/usePolling";
 
 // Default config if situation doesn't have weather config
 const DEFAULT_WEATHER_CONFIG: WeatherConfig = {
@@ -66,18 +67,15 @@ export default function WeatherAlertsPanel() {
       situationIdRef.current = activeSituation.id;
       setLoading(true);
     }
-    fetchAlerts();
-    // Refresh every 60 seconds (weather alerts are less volatile)
-    const dataInterval = setInterval(fetchAlerts, 60 * 1000);
     const tickInterval = setInterval(
       () => setSecondsAgo((prev) => prev + 1),
       1000
     );
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(tickInterval);
-    };
-  }, [fetchAlerts, activeSituation.id]);
+    return () => clearInterval(tickInterval);
+  }, [activeSituation.id]);
+
+  // Refresh every 60 seconds (weather alerts are less volatile)
+  usePolling(fetchAlerts, 60 * 1000);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

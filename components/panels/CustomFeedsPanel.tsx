@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useCustomFeeds } from "@/hooks/useCustomFeeds";
+import { usePolling } from "@/hooks/usePolling";
 
 interface NewsItem {
   title: string;
@@ -63,15 +64,11 @@ export default function CustomFeedsPanel() {
   }, [feedsForApi]);
 
   // Refresh on mount and periodically
+  usePolling(fetchArticles, 30 * 1000);
   useEffect(() => {
-    fetchArticles();
-    const dataInterval = setInterval(fetchArticles, 30 * 1000);
     const tickInterval = setInterval(() => setSecondsAgo((p) => p + 1), 1000);
-    return () => {
-      clearInterval(dataInterval);
-      clearInterval(tickInterval);
-    };
-  }, [fetchArticles]);
+    return () => clearInterval(tickInterval);
+  }, []);
 
   // Handle form submission
   const handleAddFeed = (e: React.FormEvent) => {
